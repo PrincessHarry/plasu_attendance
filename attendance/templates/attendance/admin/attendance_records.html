@@ -1,0 +1,75 @@
+{% extends "attendance/layout_sidebar.html" %}
+{% load static attendance_tags %}
+{% block title %}Attendance Records — PLASU Admin{% endblock %}
+{% block page_title %}Attendance Records{% endblock %}
+{% block sidebar_nav %}{% include "attendance/partials/admin_nav.html" %}{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <!-- Filters -->
+  <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-6 mb-6">
+    <form method="get" class="flex flex-wrap gap-4 items-end">
+      <div>
+        <label class="form-label">Course</label>
+        <select name="course" class="form-input w-48">
+          <option value="">All Courses</option>
+          {% for c in courses %}<option value="{{ c.pk }}" {% if request.GET.course == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.code }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label">From Date</label>
+        <input type="date" name="date_from" class="form-input" value="{{ request.GET.date_from }}">
+      </div>
+      <div>
+        <label class="form-label">To Date</label>
+        <input type="date" name="date_to" class="form-input" value="{{ request.GET.date_to }}">
+      </div>
+      <button type="submit" class="btn-primary">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" stroke-linecap="round"/></svg>
+        Filter
+      </button>
+      <a href="{% url 'attendance:export_attendance_csv' %}?{{ request.GET.urlencode }}" class="btn-secondary">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export CSV
+      </a>
+    </form>
+  </div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>Student</th><th>Course</th><th>Lecturer</th><th>Status</th><th>Fingerprint</th><th>Date & Time</th></tr></thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td>
+            <div>
+              <p class="font-semibold text-ink text-sm">{{ r.student.user.get_full_name }}</p>
+              <p class="text-slate-400 text-xs font-mono">{{ r.student.matric_number }}</p>
+            </div>
+          </td>
+          <td>
+            <span class="font-semibold text-primary text-sm">{{ r.session.course.code }}</span><br>
+            <span class="text-slate-400 text-xs">{{ r.session.course.title|truncatechars:22 }}</span>
+          </td>
+          <td class="text-slate-600 text-sm">{{ r.session.lecturer.user.get_full_name }}</td>
+          <td>
+            {% if r.status == 'present' %}<span class="badge badge-green">Present</span>
+            {% elif r.status == 'late' %}<span class="badge badge-yellow">Late</span>
+            {% else %}<span class="badge badge-red">Absent</span>{% endif %}
+          </td>
+          <td>
+            {% if r.fingerprint_verified %}
+              <span class="badge badge-green">Verified</span>
+            {% else %}
+              <span class="badge badge-gray">Unverified</span>
+            {% endif %}
+          </td>
+          <td class="text-slate-500 text-sm">{{ r.marked_at|date:"M d Y, H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center py-12 text-slate-400">No records found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

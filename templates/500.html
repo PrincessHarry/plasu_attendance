@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>500 — Server Error | PLASU Smart Attendance</title>
+<link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#fff1f2,#f8fafc);">
+<div style="text-align:center;padding:3rem 2rem;max-width:480px;">
+  <div style="width:80px;height:80px;background:#fee2e2;border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 2rem;">
+    <svg style="width:40px;height:40px;color:#dc2626;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <h1 style="font-size:5rem;font-weight:800;color:#dc2626;line-height:1;margin-bottom:.5rem;">500</h1>
+  <h2 style="font-size:1.4rem;font-weight:700;color:#0f172a;margin-bottom:1rem;">Internal Server Error</h2>
+  <p style="color:#64748b;margin-bottom:2rem;line-height:1.6;">
+    Something went wrong on our end. The system administrators have been notified. Please try again shortly.
+  </p>
+  <a href="/" class="btn btn-primary btn-lg" style="display:inline-flex;">
+    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Return Home
+  </a>
+  <p style="margin-top:2rem;font-size:.8rem;color:#94a3b8;">PLASU Smart Attendance System &mdash; Plateau State University</p>
+</div>
+</body>
+</html>

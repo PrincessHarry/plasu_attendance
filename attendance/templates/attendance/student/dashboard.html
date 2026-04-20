@@ -1,0 +1,142 @@
+{% extends "attendance/base.html" %}
+{% load static attendance_tags %}
+{% block title %}My Dashboard — PLASU{% endblock %}
+
+{% block body %}
+{% include "attendance/partials/student_nav.html" %}
+
+<div class="min-h-screen" style="background:#F8FAFC;">
+  <div style="max-width:1100px;margin:0 auto;padding:2rem 1.5rem;">
+
+    {% include "attendance/partials/messages.html" %}
+
+    <!-- Welcome banner -->
+    <div class="mb-8 animate-in">
+      <h1 class="text-2xl font-bold" style="color:#0f172a;">Good day, {{ student.user.first_name }}!</h1>
+      <p class="text-slate-500 text-sm mt-1">
+        {{ student.matric_number }}
+        {% if student.department %} &middot; {{ student.department.name }}{% endif %}
+        &middot; {{ student.level }}L
+      </p>
+    </div>
+
+    <!-- Top stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 animate-in" style="animation-delay:.05s;">
+      <div class="stat-card text-center">
+        <p class="text-3xl font-bold" style="color:#14532D;">{{ courses.count }}</p>
+        <p class="text-slate-500 text-sm mt-1">Courses</p>
+      </div>
+      <div class="stat-card text-center">
+        <p class="text-3xl font-bold" style="color:#0f172a;">{{ total_present }}</p>
+        <p class="text-slate-500 text-sm mt-1">Times Present</p>
+      </div>
+      <!-- Scan QR shortcut card -->
+      <div class="stat-card col-span-2" style="cursor:pointer;" onclick="window.location='{% url 'attendance:scan_qr' %}'">
+        <div class="flex items-center gap-3 h-full">
+          <div class="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6" style="color:#14532D;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+              <path d="M14 14h3v3M17 14v3M14 17h3"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-bold text-sm" style="color:#0f172a;">Scan QR Code</p>
+            <p class="text-slate-400 text-xs mt-0.5">Tap to mark attendance now</p>
+          </div>
+          <svg class="w-5 h-5 text-slate-300 ml-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Course attendance breakdown -->
+    <div class="mb-8 animate-in" style="animation-delay:.1s;">
+      <h2 class="text-lg font-bold mb-4" style="color:#0f172a;">Course Attendance</h2>
+      {% if course_stats %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for stat in course_stats %}
+        <div class="stat-card">
+          <div class="flex items-start justify-between mb-3">
+            <div class="min-w-0">
+              <p class="font-mono font-bold text-sm" style="color:#14532D;">{{ stat.course.code }}</p>
+              <p class="font-semibold text-sm mt-0.5 truncate" style="color:#0f172a;">{{ stat.course.title }}</p>
+              <p class="text-slate-400 text-xs">{{ stat.course.department.name }}</p>
+            </div>
+            <span class="text-2xl font-bold flex-shrink-0 ml-3
+              {% if stat.percentage >= 75 %}text-green-600
+              {% elif stat.percentage >= 50 %}text-yellow-500
+              {% else %}text-red-500{% endif %}">
+              {{ stat.percentage }}%
+            </span>
+          </div>
+          <div class="progress mb-2">
+            <div class="progress-bar
+              {% if stat.percentage >= 75 %}progress-green
+              {% elif stat.percentage >= 50 %}progress-yellow
+              {% else %}progress-red{% endif %}"
+              style="width:{{ stat.percentage }}%">
+            </div>
+          </div>
+          <p class="text-xs text-slate-400">{{ stat.attended }} of {{ stat.total_sessions }} sessions attended</p>
+          {% if stat.percentage < 75 and stat.total_sessions > 0 %}
+          <p class="text-xs text-orange-500 mt-1 font-medium">
+            ⚠ Below 75% attendance threshold
+          </p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card p-12 text-center">
+        <svg class="w-12 h-12 mx-auto mb-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <p class="text-slate-500 font-medium">No courses enrolled yet</p>
+        <p class="text-slate-400 text-sm mt-1">Contact admin to be enrolled in courses</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Recent attendance records -->
+    <div class="animate-in" style="animation-delay:.15s;">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold" style="color:#0f172a;">Recent Attendance</h2>
+        <a href="{% url 'attendance:student_attendance_history' %}" class="text-sm font-medium hover:underline" style="color:#14532D;">View all &rarr;</a>
+      </div>
+      <div class="table-wrapper">
+        {% if records %}
+        <table>
+          <thead>
+            <tr><th>Course</th><th>Date &amp; Time</th><th>Status</th><th>Verified</th></tr>
+          </thead>
+          <tbody>
+            {% for r in records %}
+            <tr>
+              <td>
+                <p class="font-semibold text-sm" style="color:#14532D;">{{ r.session.course.code }}</p>
+                <p class="text-slate-400 text-xs">{{ r.session.course.title|truncatechars:28 }}</p>
+              </td>
+              <td class="text-slate-600 text-sm">{{ r.marked_at|date:"M d Y, H:i" }}</td>
+              <td>
+                {% if r.status == 'present' %}<span class="badge badge-green">Present</span>
+                {% elif r.status == 'late' %}<span class="badge badge-yellow">Late</span>
+                {% else %}<span class="badge badge-red">Absent</span>{% endif %}
+              </td>
+              <td>
+                {% if r.fingerprint_verified %}<span class="badge badge-green">&#10003; Yes</span>
+                {% else %}<span class="badge badge-gray">No</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="py-14 text-center text-slate-400">
+          <svg class="w-10 h-10 mx-auto mb-3 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <p class="text-sm">No attendance records yet.</p>
+          <a href="{% url 'attendance:scan_qr' %}" class="text-sm font-medium mt-2 inline-block" style="color:#14532D;">Scan a QR code to get started</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

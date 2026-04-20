@@ -1,0 +1,22 @@
+{% extends "attendance/base.html" %}
+{% load static attendance_tags %}
+{% block title %}Session Error — PLASU{% endblock %}
+{% block body %}
+<div class="min-h-screen flex flex-col items-center justify-center px-4" style="background:#F8FAFC;">
+  <div class="bg-white rounded-3xl shadow-xl border border-slate-100 w-full text-center p-10 animate-in"
+       style="max-width:380px;">
+    <div class="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-6">
+      <svg class="w-8 h-8 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M15 9l-6 6M9 9l6 6"/>
+      </svg>
+    </div>
+    <h1 class="text-xl font-bold mb-3" style="color:#0f172a;">Session Unavailable</h1>
+    <p class="text-slate-500 text-sm mb-6">{{ error }}</p>
+    {% if session %}
+    <p class="text-xs text-slate-400 mb-6 font-mono">{{ session.course.code }} &mdash; {{ session.course.title }}</p>
+    {% endif %}
+    <a href="{% url 'attendance:student_dashboard' %}" class="btn btn-primary btn-full">Return to Dashboard</a>
+  </div>
+</div>
+{% endblock %}

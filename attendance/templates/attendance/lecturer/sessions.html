@@ -1,0 +1,44 @@
+{% extends "attendance/layout_sidebar.html" %}
+{% load static attendance_tags %}
+{% block title %}Sessions — PLASU{% endblock %}
+{% block page_title %}My Sessions{% endblock %}
+{% block sidebar_nav %}{% include "attendance/partials/lecturer_nav.html" %}{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <div class="flex items-center justify-between mb-6">
+    <div class="page-header mb-0"><h1>My Sessions</h1><p>All attendance sessions</p></div>
+    <a href="{% url 'attendance:start_session' %}" class="btn-primary">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Session
+    </a>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>Course</th><th>Status</th><th>Attendance</th><th>Venue</th><th>Started</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for s in sessions %}
+        <tr>
+          <td>
+            <p class="font-semibold text-primary text-sm">{{ s.course.code }}</p>
+            <p class="text-slate-400 text-xs">{{ s.course.title|truncatechars:30 }}</p>
+          </td>
+          <td>
+            {% if s.status == 'active' %}<span class="badge badge-green">Live</span>
+            {% elif s.status == 'ended' %}<span class="badge badge-gray">Ended</span>
+            {% else %}<span class="badge badge-yellow">Expired</span>{% endif %}
+          </td>
+          <td><span class="font-bold text-ink">{{ s.present_count }}</span> <span class="text-slate-400 text-xs">present</span></td>
+          <td class="text-slate-600 text-sm">{{ s.venue|default:"—" }}</td>
+          <td class="text-slate-500 text-sm">{{ s.started_at|date:"M d, H:i" }}</td>
+          <td>
+            <a href="{% url 'attendance:session_detail' s.id %}" class="text-primary text-sm font-medium hover:underline">View</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center py-12 text-slate-400">No sessions yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

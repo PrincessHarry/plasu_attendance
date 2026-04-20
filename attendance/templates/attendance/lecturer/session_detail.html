@@ -1,0 +1,179 @@
+{% extends "attendance/layout_sidebar.html" %}
+{% load static attendance_tags %}
+{% block title %}Session — {{ session.course.code }} — PLASU{% endblock %}
+{% block page_title %}Attendance Session{% endblock %}
+{% block page_subtitle %}{{ session.course.code }} — {{ session.course.title }}{% endblock %}
+{% block sidebar_nav %}{% include "attendance/partials/lecturer_nav.html" %}{% endblock %}
+
+{% block extra_head %}
+<style>
+.qr-wrap { position:relative; display:inline-block; }
+#qr-canvas { display:block; border-radius:14px; }
+.qr-logo {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:44px; height:44px; background:#14532D; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 xl:grid-cols-5 gap-6 animate-in">
+
+  <!-- ── QR / session control panel ───────────────────────────────────────── -->
+  <div class="xl:col-span-2">
+    <div class="card p-7 text-center">
+
+      <!-- Status badge -->
+      {% if session.is_active %}
+      <div class="flex items-center justify-center gap-2 mb-5">
+        <span class="live-dot"></span>
+        <span class="text-green-700 font-semibold text-sm">Session Active</span>
+      </div>
+      {% else %}
+      <div class="mb-5">
+        <span class="badge badge-gray px-4 py-1.5 text-sm">Session {{ session.status|capfirst }}</span>
+      </div>
+      {% endif %}
+
+      <h2 class="text-xl font-bold mb-1" style="color:#0f172a;">{{ session.course.code }}</h2>
+      <p class="text-slate-500 text-sm mb-6">{{ session.course.title }}</p>
+
+      <!-- QR code canvas -->
+      <div class="flex justify-center mb-4">
+        <div class="qr-wrap p-4 rounded-2xl border border-slate-200" style="background:#f8fafc;">
+          <canvas id="qr-canvas" width="220" height="220"></canvas>
+          <div class="qr-logo">
+            <svg viewBox="0 0 24 24" fill="none" class="w-6 h-6 text-white" stroke="currentColor" stroke-width="2">
+              <path d="M12 3L1 9l11 6 9-4.91V17M1 9v7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- URL text -->
+      <p class="text-xs text-slate-400 font-mono break-all px-2 mb-4">{{ attend_url }}</p>
+
+      {% if session.is_active %}
+      <!-- Countdown -->
+      <div class="bg-slate-50 rounded-xl p-3 mb-5">
+        <p class="text-xs text-slate-500 mb-1">Session expires in</p>
+        <p id="countdown" class="text-2xl font-bold font-mono" style="color:#14532D;">--:--</p>
+      </div>
+
+      <!-- Stop button -->
+      <form method="post" action="{% url 'attendance:end_session' session.id %}"
+            data-confirm="End this session? Students will no longer be able to mark attendance.">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger btn-full">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+          </svg>
+          Stop Session
+        </button>
+      </form>
+      {% endif %}
+
+      <!-- Session info -->
+      <div class="mt-5 pt-5 border-t border-slate-100 text-left space-y-2">
+        {% if session.venue %}
+        <div class="flex justify-between text-sm">
+          <span class="text-slate-500">Venue</span>
+          <span class="font-medium" style="color:#0f172a;">{{ session.venue }}</span>
+        </div>
+        {% endif %}
+        <div class="flex justify-between text-sm">
+          <span class="text-slate-500">Started</span>
+          <span class="font-medium" style="color:#0f172a;">{{ session.started_at|date:"H:i" }}</span>
+        </div>
+        <div class="flex justify-between text-sm">
+          <span class="text-slate-500">Expires</span>
+          <span class="font-medium" style="color:#0f172a;">{{ session.expires_at|date:"H:i" }}</span>
+        </div>
+        <div class="flex justify-between text-sm">
+          <span class="text-slate-500">Enrolled</span>
+          <span class="font-bold" style="color:#0f172a;">{{ enrolled_count }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Live attendance list ───────────────────────────────────────────── -->
+  <div class="xl:col-span-3">
+    <div class="table-wrapper">
+      <!-- Header with live count -->
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h3 class="font-bold" style="color:#0f172a;">Live Attendance</h3>
+          <p class="text-slate-400 text-xs mt-0.5">Updates every 3 seconds</p>
+        </div>
+        <div class="text-center">
+          <p id="live-count" class="text-3xl font-bold" style="color:#14532D;">{{ session.attendance_count }}</p>
+          <p class="text-xs text-slate-400">Present</p>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="px-6 py-3 border-b border-slate-50" style="background:#fafafa;">
+        <div class="flex justify-between text-xs text-slate-500 mb-1.5">
+          <span>Attendance rate</span>
+          <span id="pct">{{ session.attendance_count }}/{{ enrolled_count }}</span>
+        </div>
+        <div class="progress">
+          <div id="progress-bar" class="progress-bar progress-green"
+               style="width:{% if enrolled_count %}{% widthratio session.attendance_count enrolled_count 100 %}{% else %}0{% endif %}%">
+          </div>
+        </div>
+      </div>
+
+      <!-- Student rows -->
+      <div id="student-list" style="max-height:420px;overflow-y:auto;">
+        {% for record in records %}
+        <div class="px-6 py-3 flex items-center justify-between border-b border-slate-50 last:border-0">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center font-bold text-xs flex-shrink-0"
+                 style="color:#14532D;">
+              {{ record.student.user|initials }}
+            </div>
+            <div>
+              <p class="font-semibold text-sm" style="color:#0f172a;">{{ record.student.user.get_full_name }}</p>
+              <p class="text-slate-400 text-xs font-mono">{{ record.student.matric_number }}</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="badge badge-green">Present</span>
+            {% if record.fingerprint_verified %}
+            <p class="text-xs text-slate-400 mt-0.5">&#10003; Verified</p>
+            {% endif %}
+            <p class="text-slate-300 text-xs">{{ record.marked_at|date:"H:i:s" }}</p>
+          </div>
+        </div>
+        {% empty %}
+        <div id="empty-state" class="px-6 py-14 text-center text-slate-400">
+          <svg class="w-10 h-10 mx-auto mb-3 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          </svg>
+          <p class="text-sm">Waiting for students to scan QR code&hellip;</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+// Generate QR code
+PLASU.generateQR('qr-canvas', "{{ attend_url|escapejs }}", 220);
+
+{% if session.is_active %}
+// Countdown
+PLASU.initCountdown('countdown', "{{ session.expires_at|date:'c' }}");
+
+// Live attendance polling
+PLASU.initAttendancePoller("{{ session.id }}", { interval: 3000 });
+{% endif %}
+</script>
+{% endblock %}

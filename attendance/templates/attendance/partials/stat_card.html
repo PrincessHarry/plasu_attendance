@@ -1,0 +1,16 @@
+{% load attendance_tags %}
+<div class="stat-card animate-in">
+  <div class="flex items-center justify-between mb-3">
+    {% if icon %}
+    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:var(--color-primary-50);">
+      {{ icon|safe }}
+    </div>
+    {% endif %}
+    {% if badge %}
+    <span class="badge badge-{{ badge_color }}">{{ badge }}</span>
+    {% endif %}
+  </div>
+  <p class="text-3xl font-bold" style="color:var(--color-ink);">{{ value }}</p>
+  <p class="font-semibold text-sm mt-0.5" style="color:var(--color-ink);">{{ title }}</p>
+  {% if subtitle %}<p class="text-slate-500 text-xs mt-0.5">{{ subtitle }}</p>{% endif %}
+</div>

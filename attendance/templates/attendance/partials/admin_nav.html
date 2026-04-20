@@ -1,0 +1,50 @@
+{% load static %}
+{% url 'attendance:admin_dashboard' as url_dash %}
+{% url 'attendance:manage_faculties' as url_fac %}
+{% url 'attendance:manage_departments' as url_dept %}
+{% url 'attendance:manage_courses' as url_course %}
+{% url 'attendance:manage_lecturers' as url_lect %}
+{% url 'attendance:manage_students' as url_stu %}
+{% url 'attendance:admin_attendance_records' as url_att %}
+
+<a href="{{ url_dash }}" class="sidebar-link {% if request.path == url_dash %}active{% endif %}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+  Dashboard
+</a>
+
+<p class="sidebar-nav-section">Academic</p>
+
+<a href="{{ url_fac }}" class="sidebar-link {% if request.path == url_fac %}active{% endif %}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M6 21V7l6-4 6 4v14M9 21V12h6v9"/></svg>
+  Faculties
+</a>
+<a href="{{ url_dept }}" class="sidebar-link {% if request.path == url_dept %}active{% endif %}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+  Departments
+</a>
+<a href="{{ url_course }}" class="sidebar-link {% if request.path == url_course %}active{% endif %}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+  Courses
+</a>
+
+<p class="sidebar-nav-section">People</p>
+
+<a href="{{ url_lect }}" class="sidebar-link {% if request.path == url_lect %}active{% endif %}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+  Lecturers
+</a>
+<a href="{{ url_stu }}" class="sidebar-link {% if request.path == url_stu %}active{% endif %}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+  Students
+</a>
+
+<p class="sidebar-nav-section">Reports</p>
+
+<a href="{{ url_att }}" class="sidebar-link {% if request.path == url_att %}active{% endif %}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+  Attendance Records
+</a>
+<a href="{% url 'attendance:export_attendance_csv' %}" class="sidebar-link">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  Export CSV
+</a>

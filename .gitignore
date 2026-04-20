@@ -1,0 +1,118 @@
+# ─── PLASU Smart Attendance System — .gitignore ──────────────────────────────
+
+# ─── Environment & Secrets ───────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
+
+# ─── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+MANIFEST
+.eggs/
+*.egg-link
+pip-wheel-metadata/
+
+# ─── Virtual Environments ────────────────────────────────────────────────────
+venv/
+env/
+ENV/
+.venv/
+.env/
+virtualenv/
+.virtualenvs/
+pyvenv.cfg
+
+# ─── Django ──────────────────────────────────────────────────────────────────
+
+media/
+staticfiles/
+local_settings.py
+
+# ─── Django migrations (keep in version control — comment out if preferred) ──
+# */migrations/
+
+# ─── Testing ─────────────────────────────────────────────────────────────────
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+coverage.xml
+*.cover
+*.py,cover
+htmlcov/
+nosetests.xml
+pytest.ini
+.pytest_cache/
+test-results/
+
+# ─── IDE & Editors ───────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+Desktop.ini
+
+# ─── Logs ────────────────────────────────────────────────────────────────────
+*.log
+logs/
+log/
+django_debug.log
+
+# ─── Compiled / Cached ───────────────────────────────────────────────────────
+*.pyc
+*.pyo
+*.pyd
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+# ─── Node (if using Tailwind CLI build) ──────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# ─── Docker ──────────────────────────────────────────────────────────────────
+.dockerignore
+
+# ─── Backup & Temp ───────────────────────────────────────────────────────────
+*.bak
+*.tmp
+*.temp
+*.orig
+*.rej
+.~lock.*
+
+# ─── OS ──────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+ehthumbs.db
+Thumbs.db

@@ -1,0 +1,31 @@
+# PLASU Smart Attendance System — Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core
+Django>=4.2,<5.0
+djangorestframework>=3.14
+
+# Environment
+python-dotenv>=1.0
+
+# Images / Media
+Pillow>=10.0
+
+# QR Code (server-side generation for seed/tests)
+qrcode[pil]>=7.4
+
+# REST auth tokens
+djangorestframework-simplejwt>=5.3
+
+# Production server
+gunicorn>=21.2
+
+# Static files in production
+whitenoise>=6.6
+
+# Uncomment for PostgreSQL:
+# psycopg2-binary>=2.9
+
+# Uncomment for development extras:
+# django-debug-toolbar>=4.2
+# pytest-django>=4.7

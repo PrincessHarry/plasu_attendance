@@ -1,0 +1,33 @@
+{% extends "attendance/base.html" %}
+{% load static attendance_tags %}
+{% block title %}Attendance Confirmed — PLASU{% endblock %}
+{% block body %}
+<div class="min-h-screen flex flex-col items-center justify-center px-4"
+     style="background:linear-gradient(135deg,#f0fdf4 0%,#f8fafc 100%);">
+  <div class="bg-white rounded-3xl shadow-xl border border-slate-100 w-full text-center p-10 animate-in"
+       style="max-width:380px;">
+    <div class="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center mx-auto mb-6">
+      <svg class="w-8 h-8 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h1 class="text-xl font-bold mb-2" style="color:#0f172a;">
+      {% if already_done %}Already Recorded{% else %}Attendance Confirmed!{% endif %}
+    </h1>
+    <p class="text-slate-500 text-sm mb-1">{{ student.user.get_full_name }}</p>
+    <p class="font-semibold mb-1 text-sm" style="color:#14532D;">{{ session.course.code }} — {{ session.course.title }}</p>
+    <p class="text-slate-400 text-xs mb-5">{{ record.marked_at|date:"l, F j Y \a\t H:i" }}</p>
+    {% if record.fingerprint_verified %}
+    <span class="badge badge-green mb-5 inline-flex mx-auto">
+      <svg class="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5" stroke-linecap="round"/></svg>
+      Fingerprint Verified
+    </span>
+    {% endif %}
+    <div class="mt-2">
+      <a href="{% url 'attendance:student_dashboard' %}" class="btn btn-primary btn-full">
+        Back to Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

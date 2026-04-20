@@ -1,0 +1,29 @@
+{% load static %}
+{% url 'attendance:lecturer_dashboard' as url_dash %}
+{% url 'attendance:lecturer_courses' as url_courses %}
+{% url 'attendance:lecturer_sessions' as url_sessions %}
+{% url 'attendance:start_session' as url_start %}
+
+<a href="{{ url_dash }}" class="sidebar-link {% if request.path == url_dash %}active{% endif %}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+  Dashboard
+</a>
+
+<p class="sidebar-nav-section">Teaching</p>
+
+<a href="{{ url_courses }}" class="sidebar-link {% if request.path == url_courses %}active{% endif %}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+  My Courses
+</a>
+<a href="{{ url_sessions }}" class="sidebar-link {% if request.path == url_sessions %}active{% endif %}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+  Sessions
+</a>
+
+<p class="sidebar-nav-section">Actions</p>
+
+<a href="{{ url_start }}" class="sidebar-link {% if request.path == url_start %}active{% endif %}"
+   style="background:rgba(255,255,255,.12);color:#fff;font-weight:600;">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+  Start Session
+</a>

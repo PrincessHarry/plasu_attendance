@@ -1,0 +1,45 @@
+{% extends "attendance/layout_sidebar.html" %}
+{% load static attendance_tags %}
+{% block title %}{{ action }} Department — PLASU Admin{% endblock %}
+{% block page_title %}{{ action }} Department{% endblock %}
+{% block sidebar_nav %}{% include "attendance/partials/admin_nav.html" %}{% endblock %}
+{% block content %}
+<div class="max-w-xl animate-in">
+  <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-8">
+    <h2 class="text-xl font-bold text-ink mb-6">{{ action }} Department</h2>
+    <form method="post">
+      {% csrf_token %}
+      <div class="space-y-5">
+        <div>
+          <label class="form-label">Department Name *</label>
+          <input type="text" name="name" required class="form-input" value="{{ department.name|default:'' }}" placeholder="e.g. Computer Science">
+        </div>
+        <div>
+          <label class="form-label">Department Code *</label>
+          <input type="text" name="code" required class="form-input" value="{{ department.code|default:'' }}" placeholder="e.g. CSC">
+        </div>
+        <div>
+          <label class="form-label">Faculty *</label>
+          <select name="faculty" required class="form-input">
+            <option value="">-- Select Faculty --</option>
+            {% for f in faculties %}
+            <option value="{{ f.pk }}" {% if department.faculty_id == f.pk %}selected{% endif %}>{{ f.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Description</label>
+          <textarea name="description" rows="3" class="form-input">{{ department.description|default:'' }}</textarea>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 mt-8">
+        <button type="submit" class="btn-primary">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Department
+        </button>
+        <a href="{% url 'attendance:manage_departments' %}" class="btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

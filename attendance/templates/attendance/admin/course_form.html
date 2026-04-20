@@ -1,0 +1,78 @@
+{% extends "attendance/layout_sidebar.html" %}
+{% load static attendance_tags %}
+{% block title %}{{ action }} Course — PLASU Admin{% endblock %}
+{% block page_title %}{{ action }} Course{% endblock %}
+{% block sidebar_nav %}{% include "attendance/partials/admin_nav.html" %}{% endblock %}
+{% block content %}
+<div class="max-w-2xl animate-in">
+  <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-8">
+    <h2 class="text-xl font-bold text-ink mb-6">{{ action }} Course</h2>
+    <form method="post">
+      {% csrf_token %}
+      <div class="grid grid-cols-2 gap-5">
+        <div>
+          <label class="form-label">Course Code *</label>
+          <input type="text" name="code" required class="form-input" value="{{ course.code|default:'' }}" placeholder="e.g. CSC401">
+        </div>
+        <div>
+          <label class="form-label">Credit Units</label>
+          <select name="credit_units" class="form-input">
+            <option value="1" {% if course.credit_units == 1 %}selected{% endif %}>1</option>
+            <option value="2" {% if course.credit_units == 2 %}selected{% endif %}>2</option>
+            <option value="3" {% if course.credit_units == 3 %}selected{% endif %}>3</option>
+            <option value="4" {% if course.credit_units == 4 %}selected{% endif %}>4</option>
+            <option value="5" {% if course.credit_units == 5 %}selected{% endif %}>5</option>
+            <option value="6" {% if course.credit_units == 6 %}selected{% endif %}>6</option>
+          </select>
+        </div>
+        <div class="col-span-2">
+          <label class="form-label">Course Title *</label>
+          <input type="text" name="title" required class="form-input" value="{{ course.title|default:'' }}" placeholder="e.g. Artificial Intelligence">
+        </div>
+        <div>
+          <label class="form-label">Department *</label>
+          <select name="department" required class="form-input">
+            <option value="">-- Select Department --</option>
+            {% for d in departments %}
+            <option value="{{ d.pk }}" {% if course.department_id == d.pk %}selected{% endif %}>{{ d.name }} ({{ d.faculty.code }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Assigned Lecturer</label>
+          <select name="lecturer" class="form-input">
+            <option value="">-- Unassigned --</option>
+            {% for l in lecturers %}
+            <option value="{{ l.pk }}" {% if course.lecturer_id == l.pk %}selected{% endif %}>{{ l.user.get_full_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Level</label>
+          <select name="level" class="form-input">
+            <option value="100" {% if course.level == 100 %}selected{% endif %}>100 Level</option>
+            <option value="200" {% if course.level == 200 %}selected{% endif %}>200 Level</option>
+            <option value="300" {% if course.level == 300 %}selected{% endif %}>300 Level</option>
+            <option value="400" {% if course.level == 400 %}selected{% endif %}>400 Level</option>
+            <option value="500" {% if course.level == 500 %}selected{% endif %}>500 Level</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Semester</label>
+          <select name="semester" class="form-input">
+            <option value="first" {% if course.semester == 'first' %}selected{% endif %}>First Semester</option>
+            <option value="second" {% if course.semester == 'second' %}selected{% endif %}>Second Semester</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 mt-8">
+        <button type="submit" class="btn-primary">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Course
+        </button>
+        <a href="{% url 'attendance:manage_courses' %}" class="btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

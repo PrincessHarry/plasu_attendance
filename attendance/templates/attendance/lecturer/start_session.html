@@ -1,0 +1,54 @@
+{% extends "attendance/layout_sidebar.html" %}
+{% load static attendance_tags %}
+{% block title %}Start Attendance Session — PLASU{% endblock %}
+{% block page_title %}Start Attendance Session{% endblock %}
+{% block sidebar_nav %}{% include "attendance/partials/lecturer_nav.html" %}{% endblock %}
+{% block content %}
+<div class="max-w-xl animate-in">
+  <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-8">
+    <div class="flex items-center gap-4 mb-8">
+      <div class="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center">
+        <svg class="w-6 h-6 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+      </div>
+      <div>
+        <h2 class="text-xl font-bold text-ink">Start Attendance Session</h2>
+        <p class="text-slate-500 text-sm">A QR code will be generated for students to scan</p>
+      </div>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="space-y-5">
+        <div>
+          <label class="form-label">Select Course *</label>
+          <select name="course" required class="form-input" id="course-select">
+            <option value="">-- Choose a course --</option>
+            {% for course in courses %}
+            <option value="{{ course.pk }}" {% if request.GET.course == course.pk|stringformat:"s" %}selected{% endif %}>
+              {{ course.code }} – {{ course.title }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Venue / Room</label>
+          <input type="text" name="venue" class="form-input" placeholder="e.g. Lecture Hall A, Room 201">
+        </div>
+        <div>
+          <label class="form-label">Session Duration</label>
+          <select name="duration" class="form-input">
+            <option value="30">30 minutes</option>
+            <option value="60" selected>1 hour</option>
+            <option value="90">1.5 hours</option>
+            <option value="120">2 hours</option>
+            <option value="180">3 hours</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary w-full justify-center mt-8 py-3 text-base">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        Start Session & Generate QR
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+/* PLASU Smart Attendance — Print Styles */
+@media print {
+  .sidebar, .topbar, .btn, .alert, nav, .no-print { display: none !important; }
+  body { background: #fff; color: #000; font-size: 12px; }
+  .main-content { padding: 0; }
+  .table-wrapper { box-shadow: none; border: 1px solid #ccc; }
+  table { font-size: 11px; }
+  thead th { background: #f0f0f0 !important; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { color: #000; }
+  .badge { border: 1px solid currentColor; }
+  @page { margin: 1.5cm; }
+}

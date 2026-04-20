@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404 — Page Not Found | PLASU Smart Attendance</title>
+<link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f0fdf4,#f8fafc);">
+<div style="text-align:center;padding:3rem 2rem;max-width:480px;">
+  <div style="width:80px;height:80px;background:#dcfce7;border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 2rem;">
+    <svg style="width:40px;height:40px;color:#14532D;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M9.172 16.172a4 4 0 0 1 5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <h1 style="font-size:5rem;font-weight:800;color:#14532D;line-height:1;margin-bottom:.5rem;">404</h1>
+  <h2 style="font-size:1.4rem;font-weight:700;color:#0f172a;margin-bottom:1rem;">Page Not Found</h2>
+  <p style="color:#64748b;margin-bottom:2rem;line-height:1.6;">
+    The page you are looking for doesn't exist or may have been moved.
+  </p>
+  <a href="/" class="btn btn-primary btn-lg" style="display:inline-flex;">
+    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Return Home
+  </a>
+  <p style="margin-top:2rem;font-size:.8rem;color:#94a3b8;">PLASU Smart Attendance System &mdash; Plateau State University</p>
+</div>
+</body>
+</html>

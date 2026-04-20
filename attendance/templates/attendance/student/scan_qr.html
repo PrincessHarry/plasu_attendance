@@ -1,0 +1,117 @@
+{% extends "attendance/base.html" %}
+{% load static attendance_tags %}
+{% block title %}Scan QR Code — PLASU{% endblock %}
+
+{% block body %}
+{% include "attendance/partials/student_nav.html" %}
+
+<div class="min-h-screen" style="background:linear-gradient(135deg,#f0fdf4 0%,#f8fafc 100%);">
+  <div style="max-width:480px;margin:0 auto;padding:3rem 1.5rem;">
+    {% include "attendance/partials/messages.html" %}
+
+    <div class="text-center mb-8 animate-in">
+      <div class="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4"
+           style="border:2px solid #bbf7d0;">
+        <svg class="w-8 h-8" style="color:#14532D;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/>
+          <path d="M14 14h3v3M17 14v3M14 17h3"/>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold" style="color:#0f172a;">Scan QR Code</h1>
+      <p class="text-slate-500 text-sm mt-2">
+        Your lecturer will display a QR code on screen.<br>
+        Scan it or paste the token below to mark attendance.
+      </p>
+    </div>
+
+    <!-- Camera scanner -->
+    <div class="card p-6 mb-5 animate-in" style="animation-delay:.05s;">
+      <h3 class="font-bold text-sm mb-4" style="color:#0f172a;">Camera Scanner</h3>
+      <div id="qr-reader-box" class="rounded-xl overflow-hidden mb-4"
+           style="min-height:220px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;">
+        <div id="camera-placeholder" class="text-center p-8">
+          <svg class="w-12 h-12 text-slate-300 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+          </svg>
+          <p class="text-slate-400 text-sm">Camera not started</p>
+          <p class="text-slate-300 text-xs mt-1">Camera access required</p>
+        </div>
+        <video id="qr-video" autoplay playsinline
+               style="display:none;width:100%;border-radius:12px;"></video>
+      </div>
+      <button id="start-btn" onclick="startCamera()" class="btn btn-primary btn-full">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        Open Camera
+      </button>
+      <p id="scan-status" class="text-xs text-slate-400 text-center mt-2 hidden">
+        Scanning… point at the QR code
+      </p>
+    </div>
+
+    <!-- Manual token entry -->
+    <div class="card p-6 animate-in" style="animation-delay:.1s;">
+      <h3 class="font-bold text-sm mb-4" style="color:#0f172a;">Enter Token Manually</h3>
+      <div class="flex gap-2">
+        <input type="text" id="manual-token" class="form-input flex-1"
+               placeholder="Paste session token here…"
+               autocomplete="off" autocorrect="off" spellcheck="false">
+        <button onclick="goToToken()" class="btn btn-primary flex-shrink-0">Go</button>
+      </div>
+      <p class="text-xs text-slate-400 mt-2">
+        Your lecturer can share the token if QR scanning isn't available.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'js/qr_scanner.js' %}"></script>
+<script>
+function startCamera() {
+  const btn = document.getElementById('start-btn');
+  const status = document.getElementById('scan-status');
+  const placeholder = document.getElementById('camera-placeholder');
+  const video = document.getElementById('qr-video');
+
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M3 12a9 9 0 019-9"/></svg> Starting camera…';
+
+  PLASU.QRScanner.start(
+    'qr-video',
+    function(url) {
+      // QR found — redirect
+      if (url.startsWith('http')) {
+        window.location.href = url;
+      } else {
+        window.location.href = '/attend/' + url + '/';
+      }
+    },
+    function(err) {
+      btn.disabled = false;
+      btn.textContent = 'Retry Camera';
+      placeholder.innerHTML = '<div class="text-center p-6"><p class="text-red-400 text-sm font-medium">' + err + '</p><p class="text-slate-400 text-xs mt-1">Use manual token entry below</p></div>';
+    }
+  );
+
+  placeholder.style.display = 'none';
+  video.style.display = 'block';
+  status.classList.remove('hidden');
+  btn.innerHTML = '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M17 14v3M14 17h3"/></svg> Scanning…';
+}
+
+function goToToken() {
+  const token = document.getElementById('manual-token').value.trim();
+  if (token) {
+    window.location.href = '/attend/' + encodeURIComponent(token) + '/';
+  }
+}
+
+// Allow pressing Enter in token field
+document.getElementById('manual-token').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') goToToken();
+});
+</script>
+{% endblock %}
