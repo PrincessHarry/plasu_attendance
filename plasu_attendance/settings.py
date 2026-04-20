@@ -16,7 +16,7 @@ except ImportError:
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'plasu-dev-secret-key-change-before-production-2024')
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
-_ALLOWED = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost')
+_ALLOWED = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost,plasuattendance.onrender.com')
 ALLOWED_HOSTS = [h.strip() for h in _ALLOWED.split(',') if h.strip()]
 
 INSTALLED_APPS = [
