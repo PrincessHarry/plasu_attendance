@@ -165,4 +165,3 @@ LOGGING = {
 
 # WhiteNoise compressed static files for production
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-STATICFILES_MANIFEST_STRICT = False
