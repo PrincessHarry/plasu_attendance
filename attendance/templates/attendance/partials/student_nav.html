@@ -3,38 +3,18 @@
 {% url 'attendance:student_attendance_history' as url_hist %}
 {% url 'attendance:scan_qr' as url_scan %}
 
-<div class="student-nav">
-  <div class="student-nav-inner">
-    <a href="{{ url_dash }}" class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:#14532D;">
-        <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5 text-white" stroke="currentColor" stroke-width="2">
-          <path d="M12 3L1 9l11 6 9-4.91V17M1 9v7" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div class="hidden sm:block">
-        <p class="font-bold text-sm" style="color:#0f172a;line-height:1.2;">PLASU</p>
-        <p class="text-xs text-slate-400" style="line-height:1.2;">Smart Attendance</p>
-      </div>
-    </a>
+<a href="{{ url_dash }}" class="sidebar-link {% if request.path == url_dash %}active{% endif %}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+  Dashboard
+</a>
 
-    <div class="flex items-center gap-1 sm:gap-6">
-      <a href="{{ url_dash }}" class="nav-link {% if request.path == url_dash %}active{% endif %} px-2 py-1">Dashboard</a>
-      <a href="{{ url_hist }}" class="nav-link {% if request.path == url_hist %}active{% endif %} px-2 py-1">History</a>
-      <a href="{{ url_scan }}" class="nav-link {% if request.path == url_scan %}active{% endif %} px-2 py-1">Scan QR</a>
-    </div>
+<p class="sidebar-nav-section">My Attendance</p>
 
-    <div class="flex items-center gap-3">
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center font-bold text-xs" style="color:#14532D;">
-          {{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}
-        </div>
-        <span class="text-sm font-medium hidden md:block" style="color:#0f172a;">{{ request.user.get_full_name }}</span>
-      </div>
-      <a href="{% url 'attendance:logout' %}" class="text-slate-400 hover:text-slate-600 ml-1" title="Sign out">
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </a>
-    </div>
-  </div>
-</div>
+<a href="{{ url_scan }}" class="sidebar-link {% if request.path == url_scan %}active{% endif %}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M17 14v3M14 17h3"/></svg>
+  Scan QR Code
+</a>
+<a href="{{ url_hist }}" class="sidebar-link {% if request.path == url_hist %}active{% endif %}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+  History
+</a>

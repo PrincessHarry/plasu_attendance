@@ -1,18 +1,12 @@
-{% extends "attendance/base.html" %}
+{% extends "attendance/layout_sidebar.html" %}
 {% load static attendance_tags %}
 {% block title %}Attendance History — PLASU{% endblock %}
+{% block page_title %}Attendance History{% endblock %}
+{% block page_subtitle %}All your recorded attendance entries{% endblock %}
 
-{% block body %}
-{% include "attendance/partials/student_nav.html" %}
+{% block sidebar_nav %}{% include "attendance/partials/student_nav.html" %}{% endblock %}
 
-<div class="min-h-screen" style="background:#F8FAFC;">
-  <div style="max-width:1100px;margin:0 auto;padding:2rem 1.5rem;">
-    {% include "attendance/partials/messages.html" %}
-
-    <div class="page-header animate-in">
-      <h1>Attendance History</h1>
-      <p>All your recorded attendance entries</p>
-    </div>
+{% block content %}
 
     <div class="table-wrapper animate-in" style="animation-delay:.05s;">
       <table>
@@ -44,6 +38,4 @@
         </tbody>
       </table>
     </div>
-  </div>
-</div>
 {% endblock %}

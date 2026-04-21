@@ -10,6 +10,10 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/', views.dashboard_redirect, name='dashboard'),
 
+    # Password reset
+    path('forgot-password/', views.forgot_password, name='forgot_password'),
+    path('reset-password/<str:token>/', views.reset_password, name='reset_password'),
+
     # Admin
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('admin/faculties/', views.manage_faculties, name='manage_faculties'),
@@ -30,6 +34,8 @@ urlpatterns = [
     path('admin/lecturers/<uuid:pk>/delete/', views.delete_lecturer, name='delete_lecturer'),
     path('admin/students/', views.manage_students, name='manage_students'),
     path('admin/students/add/', views.add_student, name='add_student'),
+    path('admin/students/bulk-upload/', views.bulk_upload_students, name='bulk_upload_students'),
+    path('admin/students/bulk-upload/template/', views.download_student_template, name='download_student_template'),
     path('admin/students/<uuid:pk>/edit/', views.edit_student, name='edit_student'),
     path('admin/students/<uuid:pk>/delete/', views.delete_student, name='delete_student'),
     path('admin/attendance/', views.admin_attendance_records, name='admin_attendance_records'),
@@ -52,7 +58,7 @@ urlpatterns = [
     path('attend/<str:token>/', views.attend_session, name='attend_session'),
     path('verify-fingerprint/<uuid:session_id>/', views.verify_fingerprint, name='verify_fingerprint'),
 
-    # API endpoints
+    # API
     path('api/session/<uuid:session_id>/status/', views.api_session_status, name='api_session_status'),
     path('api/session/<uuid:session_id>/count/', views.api_attendance_count, name='api_attendance_count'),
     path('api/verify-fingerprint/', views.api_verify_fingerprint, name='api_verify_fingerprint'),

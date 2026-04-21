@@ -1,117 +1,397 @@
-{% extends "attendance/base.html" %}
+{% extends "attendance/layout_sidebar.html" %}
 {% load static attendance_tags %}
 {% block title %}Scan QR Code — PLASU{% endblock %}
+{% block page_title %}Scan QR Code{% endblock %}
+{% block page_subtitle %}Mark your attendance for an active session{% endblock %}
 
-{% block body %}
-{% include "attendance/partials/student_nav.html" %}
+{% block sidebar_nav %}{% include "attendance/partials/student_nav.html" %}{% endblock %}
 
-<div class="min-h-screen" style="background:linear-gradient(135deg,#f0fdf4 0%,#f8fafc 100%);">
-  <div style="max-width:480px;margin:0 auto;padding:3rem 1.5rem;">
+{% block content %}
+
     {% include "attendance/partials/messages.html" %}
 
-    <div class="text-center mb-8 animate-in">
-      <div class="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4"
-           style="border:2px solid #bbf7d0;">
-        <svg class="w-8 h-8" style="color:#14532D;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:1.5rem;">
+      <div style="width:64px;height:64px;border-radius:16px;background:#dcfce7;border:2px solid #86efac;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+        <svg style="width:32px;height:32px;color:#14532D;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-          <rect x="3" y="14" width="7" height="7"/>
-          <path d="M14 14h3v3M17 14v3M14 17h3"/>
+          <rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M17 14v3M14 17h3"/>
         </svg>
       </div>
-      <h1 class="text-2xl font-bold" style="color:#0f172a;">Scan QR Code</h1>
-      <p class="text-slate-500 text-sm mt-2">
-        Your lecturer will display a QR code on screen.<br>
-        Scan it or paste the token below to mark attendance.
+      <h1 style="font-size:1.5rem;font-weight:700;color:#0f172a;">Scan QR Code</h1>
+      <p style="font-size:13px;color:#64748b;margin-top:6px;line-height:1.6;">
+        Point your camera at the QR code your lecturer displays,<br>
+        or enter the session token manually below.
       </p>
     </div>
 
-    <!-- Camera scanner -->
-    <div class="card p-6 mb-5 animate-in" style="animation-delay:.05s;">
-      <h3 class="font-bold text-sm mb-4" style="color:#0f172a;">Camera Scanner</h3>
-      <div id="qr-reader-box" class="rounded-xl overflow-hidden mb-4"
-           style="min-height:220px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;">
-        <div id="camera-placeholder" class="text-center p-8">
-          <svg class="w-12 h-12 text-slate-300 mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+    <!-- ── CAMERA CARD ─────────────────────────────────────────────────── -->
+    <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:20px;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:20px;margin-bottom:14px;">
+
+      <!-- Viewport -->
+      <div id="viewport" style="position:relative;width:100%;padding-top:72%;border-radius:12px;overflow:hidden;background:#0f172a;margin-bottom:14px;">
+
+        <!-- Placeholder -->
+        <div id="cam-placeholder" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+          <svg style="width:44px;height:44px;color:#475569;opacity:.6;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
           </svg>
-          <p class="text-slate-400 text-sm">Camera not started</p>
-          <p class="text-slate-300 text-xs mt-1">Camera access required</p>
+          <p style="color:#94a3b8;font-size:12px;">Tap "Open Camera" to start scanning</p>
         </div>
-        <video id="qr-video" autoplay playsinline
-               style="display:none;width:100%;border-radius:12px;"></video>
+
+        <!-- Live video -->
+        <video id="qr-video" playsinline muted
+               style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;"></video>
+
+        <!-- Canvas for decoding (invisible) -->
+        <canvas id="qr-canvas" style="display:none;"></canvas>
+
+        <!-- Scan corners overlay -->
+        <div id="scan-overlay" style="position:absolute;inset:0;display:none;pointer-events:none;">
+          <svg style="position:absolute;top:10px;left:10px;width:36px;height:36px;" viewBox="0 0 36 36" fill="none">
+            <path d="M2 12V2H12" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg style="position:absolute;top:10px;right:10px;width:36px;height:36px;" viewBox="0 0 36 36" fill="none">
+            <path d="M34 12V2H24" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg style="position:absolute;bottom:10px;left:10px;width:36px;height:36px;" viewBox="0 0 36 36" fill="none">
+            <path d="M2 24V34H12" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg style="position:absolute;bottom:10px;right:10px;width:36px;height:36px;" viewBox="0 0 36 36" fill="none">
+            <path d="M34 24V34H24" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <!-- Animated scan line -->
+          <div id="scan-line" style="position:absolute;left:8%;right:8%;height:2px;background:linear-gradient(90deg,transparent,#22c55e,transparent);top:20%;"></div>
+        </div>
+
+        <!-- Success overlay -->
+        <div id="success-flash" style="position:absolute;inset:0;background:rgba(34,197,94,.3);display:none;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;">
+          <svg style="width:52px;height:52px;color:#fff;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p style="color:#fff;font-weight:700;font-size:14px;margin-top:8px;">QR Code Found!</p>
+        </div>
       </div>
-      <button id="start-btn" onclick="startCamera()" class="btn btn-primary btn-full">
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+      <!-- Status line -->
+      <p id="cam-status" style="text-align:center;font-size:12px;color:#94a3b8;margin-bottom:12px;min-height:16px;"></p>
+
+      <!-- Open button -->
+      <button id="open-btn" onclick="openCamera()"
+              style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:#14532D;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .2s;">
+        <svg style="width:20px;height:20px;flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
           <circle cx="12" cy="13" r="4"/>
         </svg>
         Open Camera
       </button>
-      <p id="scan-status" class="text-xs text-slate-400 text-center mt-2 hidden">
-        Scanning… point at the QR code
+
+      <!-- Stop button -->
+      <button id="stop-btn" onclick="stopCamera()"
+              style="width:100%;display:none;align-items:center;justify-content:center;gap:8px;padding:12px;background:#f1f5f9;color:#475569;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;">
+        <svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+        </svg>
+        Stop Camera
+      </button>
+
+      <!-- Error box -->
+      <div id="cam-error" style="display:none;margin-top:12px;padding:12px 14px;background:#fee2e2;border:1px solid #fecaca;border-radius:10px;font-size:13px;color:#b91c1c;line-height:1.5;"></div>
+
+      <!-- HTTPS notice -->
+      <div id="https-notice" style="display:none;margin-top:12px;padding:12px 14px;background:#fef9c3;border:1px solid #fde68a;border-radius:10px;font-size:12px;color:#92400e;line-height:1.5;">
+        <strong>Camera requires HTTPS.</strong><br>
+        Browsers only allow camera access on <code>localhost</code>, <code>127.0.0.1</code>, or secure (<code>https://</code>) pages.
+        Use the manual token entry below instead, or open this page on <code>http://localhost:8000</code>.
+      </div>
+    </div>
+
+    <!-- ── MANUAL TOKEN ─────────────────────────────────────────────────── -->
+    <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:20px;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:20px;">
+      <p style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:10px;">Enter Session Token Manually</p>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="manual-token"
+               style="flex:1;padding:11px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:inherit;outline:none;color:#0f172a;transition:border-color .2s;"
+               placeholder="Paste token here…"
+               autocomplete="off" spellcheck="false">
+        <button onclick="goToToken()"
+                style="padding:11px 20px;background:#14532D;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">
+          Go &rarr;
+        </button>
+      </div>
+      <p style="font-size:11px;color:#94a3b8;margin-top:8px;">
+        Your lecturer can read out or share this token if camera scanning is unavailable.
       </p>
     </div>
 
-    <!-- Manual token entry -->
-    <div class="card p-6 animate-in" style="animation-delay:.1s;">
-      <h3 class="font-bold text-sm mb-4" style="color:#0f172a;">Enter Token Manually</h3>
-      <div class="flex gap-2">
-        <input type="text" id="manual-token" class="form-input flex-1"
-               placeholder="Paste session token here…"
-               autocomplete="off" autocorrect="off" spellcheck="false">
-        <button onclick="goToToken()" class="btn btn-primary flex-shrink-0">Go</button>
-      </div>
-      <p class="text-xs text-slate-400 mt-2">
-        Your lecturer can share the token if QR scanning isn't available.
-      </p>
-    </div>
   </div>
 </div>
 
-<script src="{% static 'js/qr_scanner.js' %}"></script>
+<!-- jsQR — QR code decoder library (loaded with fallback) -->
 <script>
-function startCamera() {
-  const btn = document.getElementById('start-btn');
-  const status = document.getElementById('scan-status');
-  const placeholder = document.getElementById('camera-placeholder');
-  const video = document.getElementById('qr-video');
+// Load jsQR from CDN with an integrity fallback
+(function() {
+  var script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+  script.onload = function() { window._jsqrReady = true; };
+  script.onerror = function() {
+    // Try unpkg mirror
+    var s2 = document.createElement('script');
+    s2.src = 'https://unpkg.com/jsqr@1.4.0/dist/jsQR.js';
+    s2.onload = function() { window._jsqrReady = true; };
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(script);
+})();
+</script>
 
-  btn.disabled = true;
-  btn.innerHTML = '<svg class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M3 12a9 9 0 019-9"/></svg> Starting camera…';
+<style>
+@keyframes scanAnim {
+  0%,100% { top:15%; }
+  50%      { top:78%; }
+}
+#scan-line { animation: scanAnim 1.8s ease-in-out infinite; }
+@keyframes btnSpin {
+  to { transform:rotate(360deg); }
+}
+.spin-icon { animation: btnSpin .8s linear infinite; }
+</style>
 
-  PLASU.QRScanner.start(
-    'qr-video',
-    function(url) {
-      // QR found — redirect
-      if (url.startsWith('http')) {
-        window.location.href = url;
-      } else {
-        window.location.href = '/attend/' + url + '/';
-      }
-    },
-    function(err) {
-      btn.disabled = false;
-      btn.textContent = 'Retry Camera';
-      placeholder.innerHTML = '<div class="text-center p-6"><p class="text-red-400 text-sm font-medium">' + err + '</p><p class="text-slate-400 text-xs mt-1">Use manual token entry below</p></div>';
-    }
-  );
+<script>
+'use strict';
 
-  placeholder.style.display = 'none';
-  video.style.display = 'block';
-  status.classList.remove('hidden');
-  btn.innerHTML = '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M17 14v3M14 17h3"/></svg> Scanning…';
+var _stream    = null;
+var _animFrame = null;
+var _scanning  = false;
+
+/* ── helpers ──────────────────────────────────────────────────────────── */
+function setStatus(msg, color) {
+  var el = document.getElementById('cam-status');
+  el.textContent  = msg || '';
+  el.style.color  = color || '#94a3b8';
 }
 
-function goToToken() {
-  const token = document.getElementById('manual-token').value.trim();
-  if (token) {
-    window.location.href = '/attend/' + encodeURIComponent(token) + '/';
+function showError(html) {
+  var box = document.getElementById('cam-error');
+  box.innerHTML     = html;
+  box.style.display = 'block';
+  setStatus('');
+}
+
+function clearError() {
+  document.getElementById('cam-error').style.display   = 'none';
+  document.getElementById('https-notice').style.display = 'none';
+}
+
+function setBtnLoading() {
+  var btn = document.getElementById('open-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="spin-icon" style="width:20px;height:20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity=".3"/><path d="M3 12a9 9 0 019-9"/></svg> Opening camera…';
+}
+
+function resetOpenBtn() {
+  var btn = document.getElementById('open-btn');
+  btn.disabled = false;
+  btn.style.display = 'flex';
+  btn.innerHTML = '<svg style="width:20px;height:20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Retry Camera';
+}
+
+/* ── open camera ──────────────────────────────────────────────────────── */
+function openCamera() {
+  clearError();
+
+  // HTTPS check (localhost always allowed)
+  var proto = window.location.protocol;
+  var host  = window.location.hostname;
+  var isOk  = proto === 'https:' || host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '';
+  if (!isOk) {
+    document.getElementById('https-notice').style.display = 'block';
+    return;
+  }
+
+  // API check
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showError('⚠ <strong>Camera API not available.</strong><br>Use Chrome, Firefox, or Safari on a modern device. Make sure the page is on <code>localhost</code> or <code>https://</code>.');
+    return;
+  }
+
+  setBtnLoading();
+  setStatus('Requesting camera permission…');
+
+  // Constraints: prefer rear camera, fall back gracefully
+  var constraints = { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } };
+
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then(startStream)
+    .catch(function(err) {
+      if (err.name === 'OverconstrainedError' || err.name === 'ConstraintNotSatisfiedError') {
+        // Retry without constraints
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(startStream)
+          .catch(handleCameraError);
+      } else {
+        handleCameraError(err);
+      }
+    });
+}
+
+function startStream(stream) {
+  _stream   = stream;
+  _scanning = true;
+
+  var video = document.getElementById('qr-video');
+  video.srcObject = stream;
+
+  // Show video
+  document.getElementById('cam-placeholder').style.display = 'none';
+  video.style.display = 'block';
+  document.getElementById('scan-overlay').style.display    = 'block';
+  document.getElementById('open-btn').style.display        = 'none';
+  document.getElementById('stop-btn').style.display        = 'flex';
+
+  // play() — handle both promise and callback style
+  var playResult = video.play();
+  if (playResult !== undefined) {
+    playResult
+      .then(function() {
+        setStatus('Scanning… point at the QR code', '#22c55e');
+        scheduleFrame(video);
+      })
+      .catch(function(e) {
+        // Autoplay policy — try on user interaction
+        setStatus('Tap the video to start scanning', '#f59e0b');
+        video.addEventListener('click', function() { video.play(); scheduleFrame(video); }, { once: true });
+      });
+  } else {
+    // Old Safari — no promise
+    video.addEventListener('canplay', function() {
+      setStatus('Scanning… point at the QR code', '#22c55e');
+      if (!_animFrame) scheduleFrame(video);
+    }, { once: true });
   }
 }
 
-// Allow pressing Enter in token field
+function handleCameraError(err) {
+  resetOpenBtn();
+  setStatus('');
+
+  var msgs = {
+    'NotAllowedError':         '⚠ <strong>Permission denied.</strong><br>Tap the camera/lock icon in your browser address bar → allow camera → tap Retry Camera.',
+    'PermissionDeniedError':   '⚠ <strong>Permission denied.</strong><br>Tap the camera/lock icon in your browser address bar → allow camera → tap Retry Camera.',
+    'NotFoundError':           '⚠ <strong>No camera found</strong> on this device. Use the manual token entry below.',
+    'DevicesNotFoundError':    '⚠ <strong>No camera found</strong> on this device. Use the manual token entry below.',
+    'NotReadableError':        '⚠ <strong>Camera in use</strong> by another app. Close it and tap Retry Camera.',
+    'TrackStartError':         '⚠ <strong>Camera in use</strong> by another app. Close it and tap Retry Camera.',
+    'SecurityError':           '⚠ <strong>Security error.</strong> Camera requires HTTPS. Use the token field below.',
+    'AbortError':              '⚠ Camera was interrupted. Tap Retry Camera.',
+    'TypeError':               '⚠ <strong>Invalid camera configuration.</strong> Try reloading the page.',
+  };
+
+  var msg = msgs[err.name] || ('⚠ Camera error: <code>' + (err.message || err.name || 'unknown') + '</code><br>Use the manual token entry below.');
+  showError(msg);
+}
+
+/* ── decode loop ──────────────────────────────────────────────────────── */
+function scheduleFrame(video) {
+  _animFrame = requestAnimationFrame(function() { decodeFrame(video); });
+}
+
+function decodeFrame(video) {
+  if (!_scanning) return;
+
+  // Wait until we have real pixel data
+  if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
+    scheduleFrame(video);
+    return;
+  }
+
+  var canvas = document.getElementById('qr-canvas');
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  var ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  // Decode with jsQR if loaded
+  if (typeof jsQR === 'function') {
+    var pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    var result = jsQR(pixels.data, pixels.width, pixels.height, { inversionAttempts: 'dontInvert' });
+    if (result && result.data) {
+      onQRFound(result.data);
+      return;
+    }
+  } else if (!window._jsqrWarnShown) {
+    window._jsqrWarnShown = true;
+    setStatus('Loading QR decoder…', '#f59e0b');
+  }
+
+  scheduleFrame(video);
+}
+
+/* ── QR found ─────────────────────────────────────────────────────────── */
+function onQRFound(data) {
+  _scanning = false;
+  cancelAnimationFrame(_animFrame);
+  _animFrame = null;
+
+  // Stop tracks
+  if (_stream) { _stream.getTracks().forEach(function(t) { t.stop(); }); _stream = null; }
+
+  // Show success flash
+  var flash = document.getElementById('success-flash');
+  flash.style.display = 'flex';
+  setStatus('QR code detected! Redirecting…', '#22c55e');
+
+  setTimeout(function() {
+    if (/^https?:\/\//i.test(data)) {
+      window.location.href = data;
+    } else {
+      window.location.href = '/attend/' + encodeURIComponent(data.trim()) + '/';
+    }
+  }, 700);
+}
+
+/* ── stop camera ──────────────────────────────────────────────────────── */
+function stopCamera() {
+  _scanning = false;
+  if (_animFrame) { cancelAnimationFrame(_animFrame); _animFrame = null; }
+  if (_stream)    { _stream.getTracks().forEach(function(t) { t.stop(); }); _stream = null; }
+
+  var video = document.getElementById('qr-video');
+  video.pause();
+  video.srcObject   = null;
+  video.style.display = 'none';
+
+  document.getElementById('cam-placeholder').style.display  = 'flex';
+  document.getElementById('scan-overlay').style.display     = 'none';
+  document.getElementById('success-flash').style.display    = 'none';
+  document.getElementById('stop-btn').style.display         = 'none';
+
+  var btn = document.getElementById('open-btn');
+  btn.disabled = false;
+  btn.style.display = 'flex';
+  btn.innerHTML = '<svg style="width:20px;height:20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Open Camera';
+  setStatus('');
+}
+
+/* ── manual token ─────────────────────────────────────────────────────── */
+function goToToken() {
+  var token = document.getElementById('manual-token').value.trim();
+  if (!token) return;
+  window.location.href = '/attend/' + encodeURIComponent(token) + '/';
+}
+
 document.getElementById('manual-token').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') goToToken();
 });
+document.getElementById('manual-token').addEventListener('focus', function() {
+  this.style.borderColor = '#14532D';
+  this.style.boxShadow   = '0 0 0 3px rgba(20,83,45,.1)';
+});
+document.getElementById('manual-token').addEventListener('blur', function() {
+  this.style.borderColor = '#e2e8f0';
+  this.style.boxShadow   = 'none';
+});
 </script>
+
 {% endblock %}

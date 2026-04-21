@@ -846,3 +846,272 @@ def error_404(request, exception=None):
 
 def error_500(request):
     return render(request, '500.html', status=500)
+
+
+# ─── BULK STUDENT UPLOAD ─────────────────────────────────────────────────────
+
+@login_required
+@role_required('admin')
+def bulk_upload_students(request):
+    """Upload an Excel/CSV spreadsheet to register multiple students at once."""
+    departments = Department.objects.select_related('faculty').all()
+    courses     = Course.objects.select_related('department').all()
+
+    if request.method == 'POST':
+        upload_file = request.FILES.get('spreadsheet')
+        if not upload_file:
+            messages.error(request, 'No file selected.')
+            return redirect('attendance:bulk_upload_students')
+
+        filename = upload_file.name.lower()
+        rows = []
+
+        try:
+            if filename.endswith('.csv'):
+                import io
+                decoded = upload_file.read().decode('utf-8-sig')
+                reader  = csv.DictReader(io.StringIO(decoded))
+                rows    = list(reader)
+
+            elif filename.endswith(('.xlsx', '.xls')):
+                try:
+                    import openpyxl
+                    from openpyxl import load_workbook
+                    wb   = load_workbook(filename=upload_file, read_only=True, data_only=True)
+                    ws   = wb.active
+                    hdrs = [str(c.value).strip() if c.value else '' for c in next(ws.iter_rows(min_row=1, max_row=1))]
+                    for row in ws.iter_rows(min_row=2, values_only=True):
+                        rows.append(dict(zip(hdrs, row)))
+                except ImportError:
+                    messages.error(request, 'openpyxl is required for Excel files. Run: pip install openpyxl')
+                    return redirect('attendance:bulk_upload_students')
+            else:
+                messages.error(request, 'Unsupported file type. Upload a .csv or .xlsx file.')
+                return redirect('attendance:bulk_upload_students')
+
+        except Exception as e:
+            messages.error(request, f'Could not read file: {e}')
+            return redirect('attendance:bulk_upload_students')
+
+        created_count = 0
+        skipped_count = 0
+        errors        = []
+
+        for i, row in enumerate(rows, start=2):
+            # Normalise keys (strip whitespace, lowercase)
+            row = {k.strip().lower().replace(' ', '_'): (str(v).strip() if v is not None else '') for k, v in row.items()}
+
+            first_name   = row.get('first_name', '').strip()
+            last_name    = row.get('last_name',  '').strip()
+            email        = row.get('email',       '').strip().lower()
+            matric       = row.get('matric_number', row.get('matric', '')).strip()
+            dept_code    = row.get('department_code', row.get('department', '')).strip().upper()
+            level_raw    = row.get('level', '100')
+            phone        = row.get('phone', '')
+
+            # Derive email if missing
+            if not email and first_name and last_name:
+                email = f"{first_name.split()[0].lower()}.{last_name.lower()}@student.plasu.edu.ng"
+
+            if not all([first_name, last_name, email, matric]):
+                errors.append(f"Row {i}: missing required fields (first_name, last_name, email, matric_number).")
+                continue
+
+            if User.objects.filter(email=email).exists():
+                skipped_count += 1
+                continue
+
+            if StudentProfile.objects.filter(matric_number=matric).exists():
+                skipped_count += 1
+                continue
+
+            # Resolve level
+            try:
+                level = int(str(level_raw).replace('L', '').replace('l', '').strip())
+            except (ValueError, TypeError):
+                level = 100
+
+            # Resolve department
+            dept = Department.objects.filter(code=dept_code).first()
+
+            # Generate password
+            serial   = matric.split('/')[-1] if '/' in matric else matric[-4:]
+            password = f"PLASUStu@{serial}"
+
+            try:
+                user = User.objects.create_user(
+                    email=email, password=password,
+                    first_name=first_name, last_name=last_name, role='student'
+                )
+                student = StudentProfile.objects.create(
+                    user=user, department=dept,
+                    matric_number=matric, level=level, phone=phone
+                )
+
+                # Enroll in courses specified in the row (comma-separated codes)
+                course_codes_str = row.get('courses', row.get('course_codes', ''))
+                if course_codes_str:
+                    for code in [c.strip().upper() for c in course_codes_str.split(',') if c.strip()]:
+                        course_obj = Course.objects.filter(code=code).first()
+                        if course_obj:
+                            student.courses.add(course_obj)
+
+                # Send welcome email
+                _send_welcome_email(user, password, matric)
+
+                created_count += 1
+
+            except Exception as e:
+                errors.append(f"Row {i} ({email}): {e}")
+                continue
+
+        msg_parts = [f'{created_count} student(s) registered successfully.']
+        if skipped_count:
+            msg_parts.append(f'{skipped_count} skipped (already exist).')
+        if errors:
+            msg_parts.append(f'{len(errors)} error(s).')
+
+        if created_count:
+            messages.success(request, ' '.join(msg_parts))
+        else:
+            messages.warning(request, ' '.join(msg_parts))
+
+        if errors:
+            for err in errors[:5]:   # show first 5 only
+                messages.error(request, err)
+
+        return redirect('attendance:manage_students')
+
+    default_cols = [
+        ('first_name',    'Student first name'),
+        ('last_name',     'Student last name (surname)'),
+        ('email',         'Login email — auto-generated if blank'),
+        ('matric_number', 'e.g. PLASU/2023/FNAS/001'),
+    ]
+    return render(request, 'attendance/admin/bulk_upload_students.html', {
+        'departments':   departments,
+        'courses':       courses,
+        'default_cols':  default_cols,
+    })
+
+
+def _send_welcome_email(user, password, matric):
+    """Send login credentials to a newly registered student."""
+    from django.core.mail import send_mail
+    from django.conf import settings as django_settings
+    subject = 'Your PLASU Smart Attendance Account'
+    body = (
+        f"Dear {user.get_full_name()},\n\n"
+        f"Your PLASU Smart Attendance System account has been created.\n\n"
+        f"Login Details:\n"
+        f"  Email    : {user.email}\n"
+        f"  Password : {password}\n"
+        f"  Matric   : {matric}\n\n"
+        f"Please log in at http://127.0.0.1:8000/login/ and change your password.\n\n"
+        f"Plateau State University\n"
+        f"Smart Attendance System\n"
+    )
+    try:
+        send_mail(
+            subject, body,
+            django_settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=True,
+        )
+    except Exception:
+        pass   # Email failure must not interrupt bulk upload
+
+
+# ─── PASSWORD RESET (simple token-based) ─────────────────────────────────────
+
+def forgot_password(request):
+    """Step 1 — collect email and send reset link."""
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip().lower()
+        user  = User.objects.filter(email=email).first()
+        # Always show the same message to prevent email enumeration
+        if user:
+            _send_password_reset_email(request, user)
+        messages.success(
+            request,
+            'If that email is registered, a password reset link has been sent. Check your inbox.'
+        )
+        return redirect('attendance:forgot_password')
+    return render(request, 'attendance/forgot_password.html')
+
+
+def reset_password(request, token):
+    """Step 2 — validate token and set new password."""
+    from django.core.cache import cache
+    user_id = cache.get(f'pwd_reset_{token}')
+    if not user_id:
+        messages.error(request, 'This reset link is invalid or has expired.')
+        return redirect('attendance:forgot_password')
+
+    user = User.objects.filter(pk=user_id).first()
+    if not user:
+        messages.error(request, 'User not found.')
+        return redirect('attendance:forgot_password')
+
+    if request.method == 'POST':
+        new_pwd  = request.POST.get('password', '')
+        confirm  = request.POST.get('confirm_password', '')
+        if len(new_pwd) < 8:
+            messages.error(request, 'Password must be at least 8 characters.')
+        elif new_pwd != confirm:
+            messages.error(request, 'Passwords do not match.')
+        else:
+            user.set_password(new_pwd)
+            user.save()
+            cache.delete(f'pwd_reset_{token}')
+            messages.success(request, 'Password changed successfully. You can now sign in.')
+            return redirect('attendance:login')
+
+    return render(request, 'attendance/reset_password.html', {'token': token})
+
+
+def _send_password_reset_email(request, user):
+    """Generate a reset token, cache it for 1 hour, and email the link."""
+    import secrets as _secrets
+    from django.core.cache import cache
+    from django.core.mail import send_mail
+    from django.conf import settings as django_settings
+
+    token    = _secrets.token_urlsafe(32)
+    cache.set(f'pwd_reset_{token}', str(user.pk), timeout=3600)
+    reset_url = request.build_absolute_uri(f'/reset-password/{token}/')
+
+    subject = 'PLASU Attendance — Password Reset'
+    body    = (
+        f"Dear {user.get_full_name()},\n\n"
+        f"A password reset was requested for your account.\n\n"
+        f"Click the link below to set a new password (valid for 1 hour):\n"
+        f"{reset_url}\n\n"
+        f"If you did not request this, ignore this email.\n\n"
+        f"Plateau State University\nSmart Attendance System\n"
+    )
+    send_mail(
+        subject, body,
+        django_settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+        fail_silently=True,
+    )
+
+
+@login_required
+@role_required('admin')
+def download_student_template(request):
+    """Serve a blank CSV template for bulk student upload."""
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="plasu_students_template.csv"'
+    writer = csv.writer(response)
+    writer.writerow([
+        'first_name', 'last_name', 'email', 'matric_number',
+        'department_code', 'level', 'phone', 'courses'
+    ])
+    # Two example rows
+    writer.writerow(['Chidi', 'Okeke', 'chidi.okeke@student.plasu.edu.ng',
+                     'PLASU/2023/FNAS/001', 'CSC', '200', '08012345678', 'CSC201,CSC203'])
+    writer.writerow(['Amaka', 'Nwosu', '',
+                     'PLASU/2023/ARTS/002', 'ENG', '100', '', 'ENG101'])
+    return response

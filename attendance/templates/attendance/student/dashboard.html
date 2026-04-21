@@ -1,14 +1,12 @@
-{% extends "attendance/base.html" %}
+{% extends "attendance/layout_sidebar.html" %}
 {% load static attendance_tags %}
 {% block title %}My Dashboard — PLASU{% endblock %}
+{% block page_title %}My Dashboard{% endblock %}
+{% block page_subtitle %}Your attendance and course information{% endblock %}
 
-{% block body %}
-{% include "attendance/partials/student_nav.html" %}
+{% block sidebar_nav %}{% include "attendance/partials/student_nav.html" %}{% endblock %}
 
-<div class="min-h-screen" style="background:#F8FAFC;">
-  <div style="max-width:1100px;margin:0 auto;padding:2rem 1.5rem;">
-
-    {% include "attendance/partials/messages.html" %}
+{% block content %}
 
     <!-- Welcome banner -->
     <div class="mb-8 animate-in">
@@ -137,6 +135,4 @@
         {% endif %}
       </div>
     </div>
-  </div>
-</div>
 {% endblock %}

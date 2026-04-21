@@ -1,0 +1,210 @@
+{% extends "attendance/layout_sidebar.html" %}
+{% load static attendance_tags %}
+{% block title %}Bulk Upload Students — PLASU Admin{% endblock %}
+{% block page_title %}Bulk Upload Students{% endblock %}
+{% block page_subtitle %}Register multiple students from a spreadsheet{% endblock %}
+{% block sidebar_nav %}{% include "attendance/partials/admin_nav.html" %}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl animate-in">
+
+  <!-- Info banner -->
+  <div class="alert alert-info mb-6">
+    <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    Upload a <strong>.csv</strong> or <strong>.xlsx</strong> file. Each registered student automatically receives their login credentials by email.
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+    <!-- Upload form -->
+    <div class="lg:col-span-3 card p-7">
+      <h2 class="text-lg font-bold mb-5" style="color:#0f172a;">Upload Spreadsheet</h2>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label class="form-label">Spreadsheet File *</label>
+          <div id="drop-zone"
+               class="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center cursor-pointer hover:border-primary hover:bg-green-50 transition-colors"
+               onclick="document.getElementById('file-input').click()">
+            <svg class="w-10 h-10 mx-auto mb-3 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <p class="text-slate-600 font-semibold text-sm">Click to select file</p>
+            <p class="text-slate-400 text-xs mt-1">or drag and drop here</p>
+            <p class="text-slate-400 text-xs mt-1">Accepts .csv, .xlsx</p>
+            <p id="file-name" class="text-primary text-sm font-semibold mt-3 hidden"></p>
+          </div>
+          <input type="file" id="file-input" name="spreadsheet"
+                 accept=".csv,.xlsx,.xls" class="hidden"
+                 onchange="showFileName(this)">
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full mt-6" id="upload-btn">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Upload &amp; Register Students
+        </button>
+      </form>
+    </div>
+
+    <!-- Column guide -->
+    <div class="lg:col-span-2 space-y-5">
+      <div class="card p-5">
+        <h3 class="font-bold text-sm mb-3" style="color:#0f172a;">Required Columns</h3>
+        <div class="space-y-2">
+          {% for col, note in required_cols %}
+          <div class="flex items-start gap-2">
+            <span class="badge badge-green mt-0.5 flex-shrink-0">required</span>
+            <div>
+              <p class="text-sm font-mono font-bold" style="color:#14532D;">{{ col }}</p>
+              <p class="text-xs text-slate-400">{{ note }}</p>
+            </div>
+          </div>
+          {% empty %}
+          {% for col, note in default_cols %}
+          <div class="flex items-start gap-2">
+            <span class="badge badge-green mt-0.5 flex-shrink-0">required</span>
+            <div>
+              <p class="text-sm font-mono font-bold" style="color:#14532D;">{{ col }}</p>
+              <p class="text-xs text-slate-400">{{ note }}</p>
+            </div>
+          </div>
+          {% endfor %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="card p-5">
+        <h3 class="font-bold text-sm mb-3" style="color:#0f172a;">Optional Columns</h3>
+        <div class="space-y-2">
+          <div class="flex items-start gap-2">
+            <span class="badge badge-gray mt-0.5 flex-shrink-0">optional</span>
+            <div>
+              <p class="text-sm font-mono font-bold text-slate-700">department_code</p>
+              <p class="text-xs text-slate-400">e.g. CSC, MTH, ENG</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="badge badge-gray mt-0.5 flex-shrink-0">optional</span>
+            <div>
+              <p class="text-sm font-mono font-bold text-slate-700">level</p>
+              <p class="text-xs text-slate-400">100, 200, 300, 400 or 500</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="badge badge-gray mt-0.5 flex-shrink-0">optional</span>
+            <div>
+              <p class="text-sm font-mono font-bold text-slate-700">phone</p>
+              <p class="text-xs text-slate-400">Student phone number</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="badge badge-gray mt-0.5 flex-shrink-0">optional</span>
+            <div>
+              <p class="text-sm font-mono font-bold text-slate-700">courses</p>
+              <p class="text-xs text-slate-400">Comma-separated codes e.g. CSC401,CSC403</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Download template -->
+      <a href="{% url 'attendance:download_student_template' %}"
+         class="btn btn-secondary btn-full justify-center">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download CSV Template
+      </a>
+    </div>
+  </div>
+
+  <!-- Sample preview -->
+  <div class="card mt-6 overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100">
+      <h3 class="font-bold text-sm" style="color:#0f172a;">Sample Spreadsheet Format</h3>
+    </div>
+    <div class="overflow-x-auto">
+      <table>
+        <thead>
+          <tr>
+            <th>first_name</th><th>last_name</th><th>email</th>
+            <th>matric_number</th><th>department_code</th><th>level</th><th>courses</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="font-mono text-xs">Chidi</td>
+            <td class="font-mono text-xs">Okeke</td>
+            <td class="font-mono text-xs">chidi.okeke@student.plasu.edu.ng</td>
+            <td class="font-mono text-xs">PLASU/2023/FNAS/001</td>
+            <td class="font-mono text-xs">CSC</td>
+            <td class="font-mono text-xs">200</td>
+            <td class="font-mono text-xs">CSC201,CSC203</td>
+          </tr>
+          <tr>
+            <td class="font-mono text-xs">Amaka</td>
+            <td class="font-mono text-xs">Nwosu</td>
+            <td class="font-mono text-xs">(leave blank — auto-generated)</td>
+            <td class="font-mono text-xs">PLASU/2023/ARTS/002</td>
+            <td class="font-mono text-xs">ENG</td>
+            <td class="font-mono text-xs">100</td>
+            <td class="font-mono text-xs">ENG101</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="flex gap-3 mt-6">
+    <a href="{% url 'attendance:manage_students' %}" class="btn btn-secondary">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Students
+    </a>
+  </div>
+</div>
+
+<script>
+function showFileName(input) {
+  const label = document.getElementById('file-name');
+  if (input.files && input.files[0]) {
+    label.textContent = input.files[0].name;
+    label.classList.remove('hidden');
+    document.getElementById('drop-zone').style.borderColor = '#14532D';
+  }
+}
+
+// Drag and drop
+const zone = document.getElementById('drop-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor = '#14532D'; zone.style.background = '#f0fdf4'; });
+zone.addEventListener('dragleave', e => { zone.style.borderColor = ''; zone.style.background = ''; });
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const input = document.getElementById('file-input');
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    showFileName(input);
+  }
+});
+
+// Prevent double submit
+document.querySelector('form').addEventListener('submit', () => {
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M3 12a9 9 0 019-9"/></svg> Processing…';
+});
+</script>
+{% endblock %}
