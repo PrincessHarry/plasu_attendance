@@ -193,6 +193,12 @@ function resetOpenBtn() {
 function openCamera() {
   clearError();
 
+  // Secure context check - HTTPS required
+  if (!window.isSecureContext && location.hostname !== 'localhost') {
+    showError('⚠ <strong>HTTPS Required.</strong><br>Camera access requires a secure HTTPS connection for security reasons.');
+    return;
+  }
+
   // API check
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     showError('⚠ <strong>Camera API not available.</strong><br>Use Chrome, Firefox, or Safari on a modern device.');
