@@ -57,10 +57,19 @@ urlpatterns = [
     path('student/scan/', views.scan_qr, name='scan_qr'),
     path('attend/<str:token>/', views.attend_session, name='attend_session'),
     path('verify-fingerprint/<uuid:session_id>/', views.verify_fingerprint, name='verify_fingerprint'),
-
-    # API
+     
+     # ── WebAuthn (real device biometric) ──────────────────────────────────
+    # Registration (first-time biometric enrollment)
+    path('api/webauthn/register/challenge/', views.webauthn_register_challenge, name='webauthn_register_challenge'),
+    path('api/webauthn/register/verify/',   views.webauthn_register_verify,   name='webauthn_register_verify'),
+    # Authentication (attendance marking)
+    path('api/webauthn/auth/challenge/',    views.webauthn_auth_challenge,    name='webauthn_auth_challenge'),
+    path('api/webauthn/auth/verify/',       views.webauthn_auth_verify,       name='webauthn_auth_verify'),
+ 
+    # Legacy API
     path('api/session/<uuid:session_id>/status/', views.api_session_status, name='api_session_status'),
-    path('api/session/<uuid:session_id>/count/', views.api_attendance_count, name='api_attendance_count'),
-    path('api/verify-fingerprint/', views.api_verify_fingerprint, name='api_verify_fingerprint'),
-    path('api/mark-attendance/', views.api_mark_attendance, name='api_mark_attendance'),
+    path('api/session/<uuid:session_id>/count/',  views.api_attendance_count, name='api_attendance_count'),
+    path('api/verify-fingerprint/',               views.api_verify_fingerprint, name='api_verify_fingerprint'),
+    path('api/mark-attendance/',                  views.api_mark_attendance, name='api_mark_attendance'),
+  
 ]

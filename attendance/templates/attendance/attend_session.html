@@ -11,247 +11,479 @@
 {% endblock %}
 
 {% block body %}
-<div class="min-h-screen flex flex-col items-center justify-center px-4 py-10"
-     style="background:linear-gradient(135deg,#f0fdf4 0%,#f8fafc 100%);">
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1rem;background:linear-gradient(135deg,#f0fdf4 0%,#f8fafc 100%);">
 
-  <!-- Logo row -->
-  <div class="flex items-center gap-3 mb-8 animate-in">
-    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:#14532D;">
-      <img src="{% static 'images/plasu_icon.jpg' %}" alt="PLASU icon" class="w-6 h-6">
-    </div>
+  <!-- PLASU logo row -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;" class="animate-in">
+    <img src="{% static 'images/plasu_icon.jpg' %}" alt="PLASU"
+         style="width:40px;height:40px;border-radius:50%;object-fit:contain;background:rgba(20,83,45,.08);padding:4px;">
     <div>
-      <p class="font-bold text-sm" style="color:#0f172a;">PLASU Smart Attendance</p>
-      <p class="text-xs text-slate-400">Plateau State University</p>
+      <p style="font-weight:700;font-size:13px;color:#0f172a;line-height:1.2;">PLASU Smart Attendance</p>
+      <p style="font-size:11px;color:#64748b;line-height:1.2;">Plateau State University, Bokkos</p>
     </div>
   </div>
 
   <!-- Main card -->
-  <div class="bg-white rounded-3xl shadow-xl border border-slate-100 w-full"
-       style="max-width:380px;overflow:hidden;" class="animate-in">
+  <div style="background:#fff;border-radius:24px;box-shadow:0 20px 50px rgba(0,0,0,.1);border:1px solid #f1f5f9;width:100%;max-width:380px;overflow:hidden;" class="animate-in">
 
-    <!-- Course header -->
-    <div class="p-7 text-center"
-         style="background:linear-gradient(135deg,#14532D,#166534);">
-      <p class="text-green-300 text-xs font-semibold uppercase tracking-widest mb-2">Attendance Session</p>
-      <h1 class="text-2xl font-bold text-white">{{ session.course.code }}</h1>
-      <p class="text-green-200 text-sm mt-1">{{ session.course.title }}</p>
+    <!-- Course header bar -->
+    <div style="background:linear-gradient(135deg,#14532D,#166534);padding:1.75rem;text-align:center;">
+      <p style="color:#86efac;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Attendance Session</p>
+      <h1 style="color:#fff;font-size:1.5rem;font-weight:800;">{{ session.course.code }}</h1>
+      <p style="color:#bbf7d0;font-size:13px;margin-top:4px;">{{ session.course.title }}</p>
       {% if session.venue %}
-      <p class="text-green-300 text-xs mt-2">
-        <svg class="w-3 h-3 inline mr-1 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        {{ session.venue }}
+      <p style="color:#86efac;font-size:11px;margin-top:8px;">
+        📍 {{ session.venue }}
       </p>
       {% endif %}
-      <p class="text-green-300 text-xs mt-1">
-        {{ session.started_at|date:"l, F j Y" }} &nbsp;&middot;&nbsp; Expires {{ session.expires_at|date:"H:i" }}
+      <p style="color:#86efac;font-size:11px;margin-top:4px;">
+        {{ session.started_at|date:"l, F j Y" }} &nbsp;·&nbsp; Expires {{ session.expires_at|date:"H:i" }}
       </p>
     </div>
 
-    <!-- Student info strip -->
-    <div class="px-6 py-4 border-b border-slate-100 flex items-center gap-3"
-         style="background:#f8fafc;">
-      <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center font-bold text-sm flex-shrink-0"
-           style="color:#14532D;">
+    <!-- Student strip -->
+    <div style="background:#f8fafc;padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:12px;">
+      <div style="width:40px;height:40px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#14532D;flex-shrink:0;">
         {{ student.user.first_name|slice:":1" }}{{ student.user.last_name|slice:":1" }}
       </div>
-      <div class="min-w-0">
-        <p class="font-semibold text-sm truncate" style="color:#0f172a;">{{ student.user.get_full_name }}</p>
-        <p class="text-slate-400 text-xs font-mono">{{ student.matric_number }}</p>
+      <div style="min-width:0;flex:1;">
+        <p style="font-weight:700;font-size:14px;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ student.user.get_full_name }}</p>
+        <p style="font-size:11px;color:#64748b;font-family:monospace;">{{ student.matric_number }}</p>
       </div>
       {% if not enrolled %}
-      <span class="badge badge-yellow ml-auto flex-shrink-0 text-xs">Not enrolled</span>
+        <span class="badge badge-yellow" style="flex-shrink:0;font-size:11px;">Not enrolled</span>
       {% else %}
-      <span class="badge badge-green ml-auto flex-shrink-0 text-xs">Enrolled</span>
+        <span class="badge badge-green" style="flex-shrink:0;font-size:11px;">Enrolled</span>
       {% endif %}
     </div>
 
-    <!-- Fingerprint zone -->
-    <div class="px-6 py-8 text-center">
+    <!-- Body -->
+    <div style="padding:1.75rem 1.5rem;text-align:center;">
 
+      <!-- Error states -->
       {% if not enrolled %}
-      <div class="alert alert-error mb-5 text-left text-xs">
+      <div class="alert alert-error" style="text-align:left;font-size:13px;margin-bottom:16px;">
         <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
         You are not enrolled in <strong>{{ session.course.code }}</strong>. Contact your lecturer or admin.
       </div>
       {% endif %}
 
-      {% if not has_fingerprint %}
-      <div class="alert alert-error mb-5 text-left text-xs">
-        <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-        No fingerprint enrolled. Contact admin to register your biometrics.
-      </div>
-      {% endif %}
-
-      <!-- Fingerprint icon with ripple rings -->
-      <div class="relative inline-flex items-center justify-center mb-6">
-        <div id="fp-rings" class="absolute inset-0 flex items-center justify-center hidden">
-          <div class="absolute w-24 h-24 rounded-full border-2 border-green-300 fp-ring"></div>
-          <div class="absolute w-24 h-24 rounded-full border-2 border-green-300 fp-ring-2"></div>
-          <div class="absolute w-24 h-24 rounded-full border-2 border-green-300 fp-ring-3"></div>
+      <!-- Fingerprint icon with state rings -->
+      <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1.25rem;">
+        <div id="fp-rings" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;">
+          <div style="position:absolute;width:96px;height:96px;border-radius:50%;border:2px solid #86efac;" class="fp-ring"></div>
+          <div style="position:absolute;width:96px;height:96px;border-radius:50%;border:2px solid #86efac;" class="fp-ring-2"></div>
+          <div style="position:absolute;width:96px;height:96px;border-radius:50%;border:2px solid #86efac;" class="fp-ring-3"></div>
         </div>
-        <div id="fp-circle"
-             class="w-24 h-24 rounded-full flex items-center justify-center relative z-10 transition-all duration-300"
-             style="background:#f1f5f9;border:2px solid #e2e8f0;">
-          <svg id="fp-icon" class="w-12 h-12 transition-colors duration-300"
-               style="color:#94a3b8;"
-               viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <div id="fp-circle" style="width:96px;height:96px;border-radius:50%;background:#f1f5f9;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;position:relative;z-index:1;transition:all .3s;">
+          <svg id="fp-icon" style="width:48px;height:48px;color:#94a3b8;transition:color .3s;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4M12 10a2 2 0 0 1 2 2c0 1.02.1 2.51.26 4m-2-6V8m0 8.5c-.18 1.61-.5 3.07-.89 4M12 16.5c.18 1.61.5 3.07.89 4M6.5 8.5a5.5 5.5 0 0 1 11 0M5 10.5a7 7 0 0 1 14 0M3 12a9 9 0 0 1 18 0M7.5 18.5c-.29-1.31-.5-2.85-.5-4.5" stroke-linecap="round"/>
           </svg>
         </div>
       </div>
 
-      <p id="fp-status-title" class="font-bold text-lg mb-1" style="color:#0f172a;">
-        {% if enrolled and has_fingerprint %}Fingerprint Required
-        {% else %}Cannot Mark Attendance{% endif %}
+      <p id="fp-title" style="font-weight:700;font-size:17px;color:#0f172a;margin-bottom:6px;">
+        {% if enrolled %}Fingerprint Required{% else %}Cannot Mark Attendance{% endif %}
       </p>
-      <p id="fp-status-msg" class="text-slate-500 text-sm mb-6">
-        {% if enrolled and has_fingerprint %}Place your finger on the sensor to verify
-        {% else %}See the error above{% endif %}
+      <p id="fp-msg" style="font-size:13px;color:#64748b;margin-bottom:1.25rem;line-height:1.5;">
+        {% if enrolled %}
+          {% if webauthn_enrolled %}
+            Tap the button and place your finger on the sensor when prompted.
+          {% else %}
+            You need to enroll your fingerprint first.
+          {% endif %}
+        {% else %}
+          See the error above.
+        {% endif %}
       </p>
 
-      {% if enrolled and has_fingerprint %}
-      <button id="verify-btn" onclick="startVerification()" class="btn btn-primary btn-full btn-lg">
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4M12 10a2 2 0 0 1 2 2c0 1.02.1 2.51.26 4" stroke-linecap="round"/>
-          <path d="M6.5 8.5a5.5 5.5 0 0 1 11 0M5 10.5a7 7 0 0 1 14 0" stroke-linecap="round"/>
-        </svg>
-        Verify Fingerprint
-      </button>
-      <p class="text-xs text-slate-400 mt-3">Biometric verification is required</p>
+      <!-- Action area -->
+      {% if enrolled %}
+
+        {% if webauthn_enrolled %}
+          <!-- ── PRIMARY: Verify fingerprint (WebAuthn auth) ── -->
+          <button id="verify-btn" onclick="startWebAuthnAuth()"
+                  style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:#14532D;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;margin-bottom:10px;">
+            <svg style="width:20px;height:20px;flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4M12 10a2 2 0 0 1 2 2c0 1.02.1 2.51.26 4m-2-6V8" stroke-linecap="round"/>
+              <path d="M6.5 8.5a5.5 5.5 0 0 1 11 0M5 10.5a7 7 0 0 1 14 0M3 12a9 9 0 0 1 18 0" stroke-linecap="round"/>
+            </svg>
+            Verify Fingerprint
+          </button>
+
+        {% else %}
+          <!-- ── ENROLL FIRST ── -->
+          <div style="background:#fef9c3;border:1px solid #fde68a;border-radius:10px;padding:12px 14px;text-align:left;font-size:12px;color:#92400e;margin-bottom:14px;">
+            <strong>First-time setup:</strong> You need to register your fingerprint once before marking attendance.
+          </div>
+          <button id="enroll-btn" onclick="startWebAuthnRegister()"
+                  style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:#14532D;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;">
+            <svg style="width:20px;height:20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            Enroll Fingerprint
+          </button>
+        {% endif %}
+
       {% endif %}
+
+      <!-- Error / status message box -->
+      <div id="status-box" style="display:none;margin-top:10px;padding:12px 14px;border-radius:10px;font-size:13px;text-align:left;line-height:1.5;"></div>
+
     </div>
   </div>
 
-  <p class="text-xs text-slate-400 mt-5 text-center">
-    Session started {{ session.started_at|date:"H:i" }} &nbsp;&middot;&nbsp; {{ now|date:"M d, Y" }}
+  <p style="font-size:11px;color:#94a3b8;margin-top:14px;text-align:center;">
+    Session started {{ session.started_at|date:"H:i" }} &nbsp;·&nbsp; {{ now|date:"M d, Y" }}
   </p>
 </div>
 
 <script>
+'use strict';
+
+/* ── helpers ──────────────────────────────────────────────────────────── */
 const SESSION_ID = "{{ session.id }}";
+const CSRF = (function() {
+  const m = document.cookie.match('(^|;)\\s*csrftoken=([^;]+)');
+  return m ? m[2] : '';
+})();
 
-function startVerification() {
-  const btn = document.getElementById('verify-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<svg class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M3 12a9 9 0 019-9"/></svg> Scanning fingerprint…';
-  PLASU.FingerprintUI.setState('scanning');
-
-  // Simulate 2-second biometric scan, then verify
-  setTimeout(verifyWithServer, 2000);
+function b64urlEncode(buf) {
+  const bytes = new Uint8Array(buf);
+  let str = '';
+  bytes.forEach(b => str += String.fromCharCode(b));
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
-function verifyWithServer() {
-  // Use device native biometric authentication (WebAuthn)
+function b64urlDecode(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  const bin = atob(str);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+
+function setFPState(state, title, msg) {
+  const circle  = document.getElementById('fp-circle');
+  const icon    = document.getElementById('fp-icon');
+  const rings   = document.getElementById('fp-rings');
+  const titleEl = document.getElementById('fp-title');
+  const msgEl   = document.getElementById('fp-msg');
+  if (titleEl && title) titleEl.textContent = title;
+  if (msgEl   && msg)   msgEl.textContent   = msg;
+  const styles = {
+    waiting:  { bg:'#f1f5f9', border:'#e2e8f0',  icon:'#94a3b8', rings:false },
+    scanning: { bg:'#f0fdf4', border:'#86efac',   icon:'#14532D', rings:true  },
+    success:  { bg:'#f0fdf4', border:'#4ade80',   icon:'#22c55e', rings:false },
+    error:    { bg:'#fef2f2', border:'#fca5a5',   icon:'#ef4444', rings:false },
+  };
+  const s = styles[state] || styles.waiting;
+  circle.style.background   = s.bg;
+  circle.style.borderColor  = s.border;
+  icon.style.color           = s.icon;
+  rings.style.display        = s.rings ? 'flex' : 'none';
+}
+
+function showStatus(msg, type) {
+  // type: 'error' | 'success' | 'info'
+  const box = document.getElementById('status-box');
+  const colors = {
+    error:   { bg:'#fee2e2', border:'#fecaca', color:'#b91c1c' },
+    success: { bg:'#dcfce7', border:'#bbf7d0', color:'#15803d' },
+    info:    { bg:'#dbeafe', border:'#bfdbfe', color:'#1d4ed8' },
+  };
+  const c = colors[type] || colors.info;
+  box.style.background   = c.bg;
+  box.style.border       = `1px solid ${c.border}`;
+  box.style.color        = c.color;
+  box.innerHTML          = msg;
+  box.style.display      = 'block';
+}
+
+function setBtn(id, html, disabled) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.innerHTML  = html;
+  btn.disabled   = disabled;
+  btn.style.opacity = disabled ? '0.65' : '1';
+  btn.style.cursor  = disabled ? 'not-allowed' : 'pointer';
+}
+
+/* ── check WebAuthn support ───────────────────────────────────────────── */
+function checkWebAuthnSupport() {
   if (!window.PublicKeyCredential) {
-    PLASU.FingerprintUI.setState('error', 'Your device does not support fingerprint authentication.');
-    const btn = document.getElementById('verify-btn');
-    btn.disabled = false;
-    btn.textContent = 'Retry';
-    btn.onclick = startVerification;
-    return;
+    showStatus(
+      '⚠ <strong>Biometric authentication is not supported</strong> on this browser/device.<br>' +
+      'Use Chrome or Safari on a modern Android/iPhone, or Edge on Windows with Windows Hello.',
+      'error'
+    );
+    return false;
   }
+  const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (!isSecure) {
+    showStatus(
+      '⚠ <strong>HTTPS required.</strong> Biometric authentication only works on <code>https://</code> or <code>localhost</code>.',
+      'error'
+    );
+    return false;
+  }
+  return true;
+}
 
-  // Trigger device fingerprint authentication
-  authenticateWithBiometric()
-    .then(function(publicKeyCredential) {
-      // Biometric authentication successful - send to server for verification
-      sendFingerprintToServer(publicKeyCredential);
-    })
-    .catch(function(error) {
-      handleBiometricError(error);
+/* ════════════════════════════════════════════════════════════════════════
+   ENROLLMENT (first-time registration)
+   ════════════════════════════════════════════════════════════════════════ */
+async function startWebAuthnRegister() {
+  if (!checkWebAuthnSupport()) return;
+
+  setBtn('enroll-btn', '<svg style="width:20px;height:20px;animation:spin .8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-18 0" stroke-linecap="round"/></svg> Preparing…', true);
+  setFPState('scanning', 'Setting up biometrics…', 'Requesting enrollment challenge from server…');
+
+  try {
+    // ── Step 1: Get creation options from server ──────────────────────
+    const optResp = await fetch("{% url 'attendance:webauthn_register_challenge' %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+      body: '{}',
     });
-}
+    const opts = await optResp.json();
+    if (opts.error) throw new Error(opts.error);
 
-function authenticateWithBiometric() {
-  return navigator.credentials.get({
-    publicKey: {
-      challenge: new Uint8Array(32), // Random challenge from server in production
-      timeout: 60000,
-      userVerification: 'preferred',
-      rpId: window.location.hostname,
-    },
-    mediation: 'optional'
-  }).then(function(credential) {
-    if (!credential) {
-      throw new Error('Fingerprint authentication cancelled.');
-    }
-    return credential;
-  });
-}
+    // ── Step 2: Convert base64url fields to ArrayBuffers ──────────────
+    const publicKey = {
+      ...opts,
+      challenge: b64urlDecode(opts.challenge),
+      user: {
+        ...opts.user,
+        id: b64urlDecode(opts.user.id),
+      },
+      excludeCredentials: (opts.excludeCredentials || []).map(c => ({
+        ...c, id: b64urlDecode(c.id),
+      })),
+    };
 
-function sendFingerprintToServer(credential) {
-  const fingerprintData = btoa(JSON.stringify({
-    id: credential.id,
-    type: credential.type,
-    rawId: Array.from(new Uint8Array(credential.rawId)),
-  }));
+    setFPState('scanning', 'Touch your fingerprint sensor', 'Your device will prompt you now…');
+    setBtn('enroll-btn', 'Waiting for your device…', true);
 
-  fetch("{% url 'attendance:api_verify_fingerprint' %}", {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': PLASU.getCookie('csrftoken'),
-    },
-    body: JSON.stringify({ 
-      session_id: SESSION_ID,
-      fingerprint_data: fingerprintData
-    }),
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    const btn = document.getElementById('verify-btn');
-    if (data.status === 'success') {
-      PLASU.FingerprintUI.setState('success', data.message);
-      btn.innerHTML = '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg> Attendance Recorded!';
-      btn.style.background = '#22c55e';
-      btn.style.cursor = 'default';
-      setTimeout(function() {
-        window.location.href = "{% url 'attendance:student_dashboard' %}";
-      }, 2500);
-    } else if (data.duplicate_detected) {
-      PLASU.FingerprintUI.setState('error', data.message || 'Fingerprint does not match, use your device or try again.');
-      btn.disabled = false;
-      btn.style.background = '#fee2e2';
-      btn.style.color = '#b91c1c';
-      btn.innerHTML = 'Try Again';
-      btn.onclick = startVerification;
+    // ── Step 3: Browser shows native biometric prompt ────────────────
+    const credential = await navigator.credentials.create({ publicKey });
+
+    setFPState('scanning', 'Saving your biometric…', 'Verifying with server…');
+
+    // ── Step 4: Extract authData from attestation object ─────────────
+    // We parse the AttestationObject CBOR ourselves to avoid needing cbor.js
+    // For 'none' attestation, authData is straightforward to extract
+    const attObj    = new Uint8Array(credential.response.attestationObject);
+    const authData  = extractAuthDataFromAttestationObject(attObj);
+
+    // ── Step 5: Send to server ────────────────────────────────────────
+    const payload = {
+      credentialId:               b64urlEncode(credential.rawId),
+      clientDataJSON:             b64urlEncode(credential.response.clientDataJSON),
+      attestationObject_authData: b64urlEncode(authData),
+      deviceName: navigator.userAgent.includes('iPhone') ? 'iPhone' :
+                  navigator.userAgent.includes('Android') ? 'Android Phone' :
+                  navigator.userAgent.includes('Windows') ? 'Windows Device' : 'Device',
+    };
+
+    const verifyResp = await fetch("{% url 'attendance:webauthn_register_verify' %}", {
+      method:  'POST',
+      headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    const result = await verifyResp.json();
+
+    if (result.status === 'success') {
+      setFPState('success', 'Fingerprint Enrolled!', result.message);
+      showStatus('✓ Biometric registered. You can now mark attendance. Reloading…', 'success');
+      setTimeout(() => location.reload(), 2000);
     } else {
-      PLASU.FingerprintUI.setState('error', 'Fingerprint does not match, use your device or try again.');
-      btn.disabled = false;
-      btn.style.background = '#fee2e2';
-      btn.style.color = '#b91c1c';
-      btn.innerHTML = 'Try Again';
-      btn.onclick = startVerification;
+      throw new Error(result.message || 'Registration failed.');
     }
-  })
-  .catch(function(err) {
-    PLASU.FingerprintUI.setState('error', 'Network error. Check your connection.');
-    const btn = document.getElementById('verify-btn');
-    btn.disabled = false;
-    btn.textContent = 'Try Again';
-    btn.onclick = startVerification;
-  });
+
+  } catch (err) {
+    handleWebAuthnError(err, 'enroll-btn',
+      '<svg style="width:20px;height:20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Enroll Fingerprint',
+      startWebAuthnRegister
+    );
+  }
 }
 
-function handleBiometricError(error) {
-  const btn = document.getElementById('verify-btn');
-  let errorMessage = 'Fingerprint authentication failed.';
-  
-  if (error.name === 'NotAllowedError') {
-    errorMessage = 'Fingerprint authentication was cancelled. Try again.';
-  } else if (error.name === 'InvalidStateError') {
-    errorMessage = 'Fingerprint does not match, use your device or try again.';
-  } else if (error.name === 'NotSupportedError') {
-    errorMessage = 'Your device does not support fingerprint authentication.';
-  } else if (error.message) {
-    errorMessage = error.message;
+/* ════════════════════════════════════════════════════════════════════════
+   AUTHENTICATION (mark attendance)
+   ════════════════════════════════════════════════════════════════════════ */
+async function startWebAuthnAuth() {
+  if (!checkWebAuthnSupport()) return;
+
+  setBtn('verify-btn', '<svg style="width:20px;height:20px;animation:spin .8s linear infinite;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-18 0" stroke-linecap="round"/></svg> Preparing…', true);
+  setFPState('scanning', 'Requesting verification…', 'Getting challenge from server…');
+  document.getElementById('status-box').style.display = 'none';
+
+  try {
+    // ── Step 1: Get assertion options from server ──────────────────────
+    const optResp = await fetch("{% url 'attendance:webauthn_auth_challenge' %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    const opts = await optResp.json();
+    if (opts.error) throw new Error(opts.error);
+
+    // ── Step 2: Convert fields to ArrayBuffers ─────────────────────────
+    const publicKey = {
+      ...opts,
+      challenge: b64urlDecode(opts.challenge),
+      allowCredentials: (opts.allowCredentials || []).map(c => ({
+        ...c, id: b64urlDecode(c.id),
+      })),
+    };
+
+    setFPState('scanning', 'Touch your fingerprint sensor', 'Your device will prompt you now…');
+    setBtn('verify-btn', '👆 Waiting for fingerprint…', true);
+
+    // ── Step 3: Browser shows native biometric prompt ─────────────────
+    // This is the moment the phone pops up "Use your fingerprint"
+    const assertion = await navigator.credentials.get({ publicKey });
+
+    setFPState('scanning', 'Verifying…', 'Confirming with server…');
+    setBtn('verify-btn', 'Verifying…', true);
+
+    // ── Step 4: Send assertion to server ──────────────────────────────
+    const payload = {
+      session_id:        SESSION_ID,
+      credentialId:      b64urlEncode(assertion.rawId),
+      clientDataJSON:    b64urlEncode(assertion.response.clientDataJSON),
+      authenticatorData: b64urlEncode(assertion.response.authenticatorData),
+      signature:         b64urlEncode(assertion.response.signature),
+    };
+
+    const verifyResp = await fetch("{% url 'attendance:webauthn_auth_verify' %}", {
+      method:  'POST',
+      headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    const result = await verifyResp.json();
+
+    if (result.status === 'success') {
+      setFPState('success', 'Attendance Recorded!', result.message);
+      setBtn('verify-btn',
+        '<svg style="width:20px;height:20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg> Done!',
+        true
+      );
+      document.getElementById('verify-btn').style.background = '#22c55e';
+      showStatus('✓ ' + result.message + ' Redirecting to dashboard…', 'success');
+      setTimeout(() => { window.location.href = "{% url 'attendance:student_dashboard' %}"; }, 2500);
+    } else {
+      throw new Error(result.message || 'Verification failed.');
+    }
+
+  } catch (err) {
+    handleWebAuthnError(err, 'verify-btn',
+      '<svg style="width:20px;height:20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4M12 10a2 2 0 0 1 2 2c0 1.02.1 2.51.26 4m-2-6V8" stroke-linecap="round"/><path d="M6.5 8.5a5.5 5.5 0 0 1 11 0M5 10.5a7 7 0 0 1 14 0M3 12a9 9 0 0 1 18 0" stroke-linecap="round"/></svg> Try Again',
+      startWebAuthnAuth
+    );
   }
-  
-  PLASU.FingerprintUI.setState('error', errorMessage);
-  btn.disabled = false;
-  btn.style.background = '#fee2e2';
-  btn.style.color = '#b91c1c';
-  btn.innerHTML = 'Try Again';
-  btn.onclick = startVerification;
 }
+
+/* ── shared error handler ─────────────────────────────────────────────── */
+function handleWebAuthnError(err, btnId, retryHtml, retryFn) {
+  let msg = '';
+
+  if (err.name === 'NotAllowedError') {
+    // This fires when: user cancelled, timed out, or — importantly —
+    // when the device only offers PIN/pattern but we require biometrics
+    msg = '⚠ <strong>Authentication was not completed.</strong><br>' +
+          'If your device asked for a PIN or pattern instead of fingerprint, try again — ' +
+          'the system requires your <strong>fingerprint</strong>, not a PIN.<br>' +
+          'If you cancelled, tap "Try Again".';
+    setFPState('error', 'Not Completed', 'Fingerprint required — PIN not accepted.');
+
+  } else if (err.name === 'InvalidStateError') {
+    msg = '⚠ This credential is not registered on your device. Please enroll again.';
+    setFPState('error', 'Credential Error', 'Fingerprint not recognised.');
+
+  } else if (err.name === 'SecurityError') {
+    msg = '⚠ <strong>Security error.</strong> This page must be served over HTTPS.';
+    setFPState('error', 'Security Error', 'HTTPS required.');
+
+  } else if (err.name === 'NotSupportedError') {
+    msg = '⚠ Your device does not support fingerprint authentication via this browser.';
+    setFPState('error', 'Not Supported', 'Try Chrome on Android or Safari on iPhone.');
+
+  } else if (err.name === 'AbortError') {
+    msg = 'Authentication was cancelled. Tap "Try Again" when ready.';
+    setFPState('waiting', 'Cancelled', 'Tap the button to try again.');
+
+  } else {
+    msg = '⚠ ' + (err.message || 'Unknown error. Try again.');
+    setFPState('error', 'Error', err.message || '');
+  }
+
+  showStatus(msg, 'error');
+
+  const btn = document.getElementById(btnId);
+  if (btn) {
+    btn.innerHTML  = retryHtml;
+    btn.disabled   = false;
+    btn.style.opacity = '1';
+    btn.style.cursor  = 'pointer';
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.onclick    = retryFn;
+  }
+}
+
+/* ── CBOR attestation object parser (minimal, for 'none' attestation) ── */
+function extractAuthDataFromAttestationObject(bytes) {
+  // AttestationObject is a CBOR map: { fmt: "none", attStmt: {}, authData: bytes }
+  // We parse just enough to extract authData without a full CBOR library.
+  // Walk through the CBOR to find the "authData" key.
+  let i = 0;
+
+  function readByte()     { return bytes[i++]; }
+  function readBytes(n)   { const s = bytes.slice(i, i+n); i += n; return s; }
+
+  function readCBOR() {
+    const ib  = readByte();
+    const mt  = (ib >> 5) & 0x07;   // major type
+    const ai  = ib & 0x1f;          // additional info
+
+    let length = ai;
+    if      (ai === 24) length = readByte();
+    else if (ai === 25) length = (readByte() << 8) | readByte();
+    else if (ai === 26) length = (readByte() << 24) | (readByte() << 16) | (readByte() << 8) | readByte();
+
+    if (mt === 0) return length;                               // uint
+    if (mt === 2) return readBytes(length);                    // bytes
+    if (mt === 3) {                                             // text
+      const tb = readBytes(length);
+      return new TextDecoder().decode(tb);
+    }
+    if (mt === 4) {                                             // array
+      const arr = [];
+      for (let k = 0; k < length; k++) arr.push(readCBOR());
+      return arr;
+    }
+    if (mt === 5) {                                             // map
+      const map = {};
+      for (let k = 0; k < length; k++) {
+        const key = readCBOR();
+        map[key]  = readCBOR();
+      }
+      return map;
+    }
+    return null;
+  }
+
+  const obj = readCBOR();
+  if (obj && obj['authData']) {
+    return obj['authData'];
+  }
+  throw new Error('Could not extract authData from attestation object.');
+}
+
+/* ── spin animation ───────────────────────────────────────────────────── */
 </script>
+<style>
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
 {% endblock %}

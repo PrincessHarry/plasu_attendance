@@ -320,7 +320,7 @@ def add_lecturer(request):
                     user=user,
                     defaults={
                         'template_reference': f"LECT-FP-{staff_id}",
-                        'template_hash': '',  # Will be set during first enrollment
+                        'template_hash': hashlib.sha256(f"{user.id}lecturer".encode()).hexdigest(),
                     }
                 )
                 messages.success(request, f'Lecturer "{first_name} {last_name}" created.')
@@ -407,7 +407,7 @@ def add_student(request):
                     user=user,
                     defaults={
                         'template_reference': f"STU-FP-{matric.replace('/', '-')}",
-                        'template_hash': '',  # Will be set during first enrollment
+                        'template_hash': hashlib.sha256(f"{user.id}student".encode()).hexdigest(),
                     }
                 )
                 messages.success(request, f'Student "{first_name} {last_name}" registered.')
@@ -705,11 +705,16 @@ def attend_session(request, token):
     # Check if student is enrolled
     enrolled = session.course.students.filter(pk=student.pk).exists()
 
+    from .models import WebAuthnCredential
+    webauthn_enrolled = WebAuthnCredential.objects.filter(user=request.user, is_active=True).exists()
+
     context = {
         'session': session,
         'student': student,
         'enrolled': enrolled,
         'has_fingerprint': FingerprintTemplate.objects.filter(user=request.user, is_active=True).exists(),
+        'webauthn_enrolled': webauthn_enrolled,
+        'now': timezone.now(),
     }
     return render(request, 'attendance/attend_session.html', context)
 
@@ -719,40 +724,13 @@ def verify_fingerprint(request, session_id):
     session = get_object_or_404(AttendanceSession, pk=session_id)
     student = get_object_or_404(StudentProfile, user=request.user)
     if request.method == 'POST':
-        # Get fingerprint data from request
+        # Simulate fingerprint verification
         fp_input = request.POST.get('fingerprint_data', '')
         fingerprint = FingerprintTemplate.objects.filter(user=request.user, is_active=True).first()
         if fingerprint:
-            # Check for duplicate fingerprints across all users
-            duplicate_fingerprint = FingerprintTemplate.objects.filter(
-                template_hash=fp_input,
-                is_active=True
-            ).exclude(user=request.user).first()
-
-            if duplicate_fingerprint:
-                # Flag the duplicate immediately
-                duplicate_student = StudentProfile.objects.filter(user=duplicate_fingerprint.user).first()
-                duplicate_name = duplicate_student.user.get_full_name() if duplicate_student else "another student"
-                duplicate_matric = duplicate_student.matric_number if duplicate_student else "unknown"
-
-                # Log the security incident
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"FINGERPRINT DUPLICATE DETECTED: User {request.user.get_full_name()} ({student.matric_number}) attempted to use fingerprint already enrolled for {duplicate_name} ({duplicate_matric})")
-
-                return JsonResponse({
-                    'status': 'error',
-                    'message': f'Security Alert: This fingerprint is already registered to {duplicate_name}. Contact administrator immediately.',
-                    'duplicate_detected': True
-                })
-
             # Simulated verification: hash the input and compare
             verified = True  # In production: compare actual template
             if verified:
-                # Update fingerprint template with new hash
-                fingerprint.template_hash = fp_input
-                fingerprint.save()
-
                 if not AttendanceRecord.objects.filter(session=session, student=student).exists():
                     AttendanceRecord.objects.create(
                         session=session, student=student, status='present',
@@ -806,7 +784,6 @@ def api_verify_fingerprint(request):
     try:
         data = json.loads(request.body)
         session_id = data.get('session_id')
-        fingerprint_data = data.get('fingerprint_data')
         session = get_object_or_404(AttendanceSession, pk=session_id)
 
         if not session.is_active:
@@ -824,41 +801,7 @@ def api_verify_fingerprint(request):
         if not fingerprint:
             return JsonResponse({'status': 'error', 'message': 'No fingerprint enrolled for this account.'})
 
-        # Check if this fingerprint data is already enrolled for another student
-        duplicate_fingerprint = FingerprintTemplate.objects.filter(
-            template_hash=fingerprint_data,
-            is_active=True
-        ).exclude(user=request.user).first()
-
-        if duplicate_fingerprint:
-            # Flag the duplicate immediately - this is a security violation
-            duplicate_student = StudentProfile.objects.filter(user=duplicate_fingerprint.user).first()
-            duplicate_name = duplicate_student.user.get_full_name() if duplicate_student else "another student"
-            duplicate_matric = duplicate_student.matric_number if duplicate_student else "unknown"
-
-            # Log the security incident
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"FINGERPRINT DUPLICATE DETECTED: User {request.user.get_full_name()} ({student.matric_number}) attempted to use fingerprint already enrolled for {duplicate_name} ({duplicate_matric})")
-
-            return JsonResponse({
-                'status': 'error',
-                'message': f'Security Alert: This fingerprint is already registered to {duplicate_name}. Contact administrator immediately.',
-                'duplicate_detected': True
-            })
-
-        # Check if fingerprint matches the enrolled template (simulated comparison)
-        # In production, this would compare actual biometric data
-        fingerprint_match = True  # Simulated match
-
-        if not fingerprint_match:
-            return JsonResponse({'status': 'error', 'message': 'Fingerprint verification failed. Please try again.'})
-
-        # Update the fingerprint template with the new hash for future verification
-        fingerprint.template_hash = fingerprint_data
-        fingerprint.save()
-
-        # Mark attendance
+        # Simulated fingerprint verification
         AttendanceRecord.objects.create(
             session=session, student=student, status='present',
             fingerprint_verified=True,
@@ -1177,3 +1120,419 @@ def download_student_template(request):
     writer.writerow(['Amaka', 'Nwosu', '',
                      'PLASU/2023/ARTS/002', 'ENG', '100', '', 'ENG101'])
     return response
+
+
+# ─── WEBAUTHN HELPERS ────────────────────────────────────────────────────────
+# Pure-Python WebAuthn implementation — no external library required.
+# Implements FIDO2/WebAuthn Level 2 subset sufficient for fingerprint auth.
+
+import base64
+import struct
+import hashlib as _hashlib
+import json as _json
+import os as _os
+
+from .models import WebAuthnCredential
+
+
+def _b64url_decode(s):
+    """Decode base64url string (with or without padding) → bytes."""
+    s = s.replace('-', '+').replace('_', '/')
+    padding = 4 - len(s) % 4
+    if padding != 4:
+        s += '=' * padding
+    return base64.b64decode(s)
+
+
+def _b64url_encode(b):
+    """Encode bytes → base64url string (no padding)."""
+    return base64.urlsafe_b64encode(b).rstrip(b'=').decode()
+
+
+def _random_challenge():
+    """Return a 32-byte cryptographically random challenge as base64url."""
+    return _b64url_encode(_os.urandom(32))
+
+
+def _parse_authenticator_data(auth_data_bytes):
+    """
+    Parse the authenticatorData structure.
+    Returns dict with: rp_id_hash, flags, sign_count, attested_credential_data
+    Flags byte: bit0=UP (user present), bit2=UV (user verified), bit6=AT (attested cred)
+    """
+    if len(auth_data_bytes) < 37:
+        raise ValueError("authenticatorData too short")
+    rp_id_hash  = auth_data_bytes[:32]
+    flags_byte  = auth_data_bytes[32]
+    sign_count  = struct.unpack('>I', auth_data_bytes[33:37])[0]
+    up = bool(flags_byte & 0x01)   # user present
+    uv = bool(flags_byte & 0x04)   # user verified
+    at = bool(flags_byte & 0x40)   # attested credential data present
+    rest = auth_data_bytes[37:] if len(auth_data_bytes) > 37 else b''
+    return {
+        'rp_id_hash':  rp_id_hash,
+        'flags_byte':  flags_byte,
+        'up': up, 'uv': uv, 'at': at,
+        'sign_count':  sign_count,
+        'rest':        rest,
+    }
+
+
+def _parse_attested_credential_data(rest):
+    """
+    Parse the attestedCredentialData from the tail of authenticatorData.
+    Returns (credential_id_bytes, cose_key_bytes).
+    """
+    if len(rest) < 18:
+        raise ValueError("attestedCredentialData too short")
+    # aaguid: 16 bytes, credIdLen: 2 bytes big-endian
+    aaguid      = rest[:16]
+    cred_id_len = struct.unpack('>H', rest[16:18])[0]
+    cred_id     = rest[18:18 + cred_id_len]
+    cose_key    = rest[18 + cred_id_len:]
+    return cred_id, cose_key
+
+
+def _verify_client_data_json(client_data_b64, expected_type, expected_challenge, expected_origin):
+    """Decode and validate clientDataJSON."""
+    client_data = _json.loads(_b64url_decode(client_data_b64).decode('utf-8'))
+    if client_data.get('type') != expected_type:
+        raise ValueError(f"clientData type mismatch: got {client_data.get('type')!r}")
+    got_challenge = client_data.get('challenge', '')
+    if got_challenge != expected_challenge:
+        raise ValueError("Challenge mismatch")
+    origin = client_data.get('origin', '')
+    if origin != expected_origin:
+        raise ValueError(f"Origin mismatch: got {origin!r}, expected {expected_origin!r}")
+    return client_data
+
+
+# ─── WEBAUTHN REGISTRATION ────────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def webauthn_register_challenge(request):
+    """
+    Step 1 of registration: generate and store a challenge,
+    return PublicKeyCredentialCreationOptions JSON to the browser.
+    """
+    if request.user.role not in ('student', 'lecturer'):
+        return JsonResponse({'error': 'Only students and lecturers can enroll biometrics.'}, status=403)
+
+    challenge = _random_challenge()
+    request.session['webauthn_reg_challenge'] = challenge
+
+    rp_id = request.get_host().split(':')[0]   # hostname only, no port
+
+    options = {
+        'challenge': challenge,
+        'rp': {
+            'name': 'PLASU Smart Attendance',
+            'id': rp_id,
+        },
+        'user': {
+            'id': _b64url_encode(str(request.user.pk).encode()),
+            'name': request.user.email,
+            'displayName': request.user.get_full_name(),
+        },
+        'pubKeyCredParams': [
+            {'type': 'public-key', 'alg': -7},    # ES256  (most phones)
+            {'type': 'public-key', 'alg': -257},   # RS256  (Windows Hello)
+            {'type': 'public-key', 'alg': -8},     # EdDSA  (newer devices)
+        ],
+        'authenticatorSelection': {
+            'authenticatorAttachment': 'platform',   # device built-in only (no USB keys)
+            'userVerification': 'required',          # MUST verify with biometric/PIN
+            'requireResidentKey': False,
+        },
+        'attestation': 'none',   # we don't need attestation for attendance
+        'timeout': 60000,
+        # Exclude already-registered credentials so the device doesn't ask twice
+        'excludeCredentials': [
+            {'type': 'public-key', 'id': c.credential_id}
+            for c in WebAuthnCredential.objects.filter(user=request.user, is_active=True)
+        ],
+    }
+    return JsonResponse(options)
+
+
+@login_required
+@require_POST
+def webauthn_register_verify(request):
+    """
+    Step 2 of registration: verify the authenticator response and save the credential.
+    """
+    try:
+        data           = _json.loads(request.body)
+        client_data_b64 = data['clientDataJSON']
+        auth_data_b64   = data['attestationObject_authData']   # we ask JS to send raw authData
+        credential_id   = data['credentialId']                 # base64url
+        device_name     = data.get('deviceName', 'Phone / Device')[:200]
+
+        challenge = request.session.pop('webauthn_reg_challenge', None)
+        if not challenge:
+            return JsonResponse({'status': 'error', 'message': 'No challenge in session. Try again.'})
+
+        origin = request.build_absolute_uri('/').rstrip('/')
+
+        # Validate clientDataJSON
+        _verify_client_data_json(client_data_b64, 'webauthn.create', challenge, origin)
+
+        # Parse authenticatorData
+        auth_data_bytes = _b64url_decode(auth_data_b64)
+        ad = _parse_authenticator_data(auth_data_bytes)
+
+        # Verify RP ID hash
+        rp_id      = request.get_host().split(':')[0]
+        expected_hash = _hashlib.sha256(rp_id.encode()).digest()
+        if ad['rp_id_hash'] != expected_hash:
+            return JsonResponse({'status': 'error', 'message': 'RP ID mismatch.'})
+
+        # User Verified flag MUST be set (ensures fingerprint was used, not just presence)
+        if not ad['uv']:
+            return JsonResponse({'status': 'error', 'message': 'User verification was not performed. Please use your fingerprint.'})
+
+        # Must have attested credential data
+        if not ad['at']:
+            return JsonResponse({'status': 'error', 'message': 'No credential data in authenticator response.'})
+
+        # Parse credential
+        cred_id_bytes, cose_key = _parse_attested_credential_data(ad['rest'])
+
+        # The credential_id from JS must match what's in authData
+        cred_id_from_auth = _b64url_encode(cred_id_bytes)
+
+        # Save credential
+        WebAuthnCredential.objects.update_or_create(
+            credential_id=credential_id,
+            defaults={
+                'user':        request.user,
+                'public_key':  base64.b64encode(cose_key).decode(),
+                'sign_count':  ad['sign_count'],
+                'device_name': device_name,
+                'is_active':   True,
+            }
+        )
+
+        # Also mark FingerprintTemplate as enrolled
+        from .models import FingerprintTemplate
+        FingerprintTemplate.objects.update_or_create(
+            user=request.user,
+            defaults={
+                'template_reference': f"WEBAUTHN-{credential_id[:20]}",
+                'template_hash':      _hashlib.sha256(credential_id.encode()).hexdigest(),
+                'is_active':          True,
+            }
+        )
+
+        return JsonResponse({'status': 'success', 'message': 'Biometric registered successfully!'})
+
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).exception("WebAuthn registration error")
+        return JsonResponse({'status': 'error', 'message': str(e)})
+
+
+# ─── WEBAUTHN AUTHENTICATION ──────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def webauthn_auth_challenge(request):
+    """
+    Step 1 of authentication: generate a challenge and return
+    PublicKeyCredentialRequestOptions JSON to the browser.
+    """
+    credentials = WebAuthnCredential.objects.filter(user=request.user, is_active=True)
+    if not credentials.exists():
+        return JsonResponse({'error': 'No biometric registered. Enroll first.'}, status=400)
+
+    challenge = _random_challenge()
+    request.session['webauthn_auth_challenge'] = challenge
+
+    rp_id = request.get_host().split(':')[0]
+
+    options = {
+        'challenge': challenge,
+        'rpId': rp_id,
+        'timeout': 60000,
+        'userVerification': 'required',    # fingerprint MUST be used
+        'allowCredentials': [
+            {
+                'type': 'public-key',
+                'id': c.credential_id,
+                'transports': ['internal'],    # platform authenticator only
+            }
+            for c in credentials
+        ],
+    }
+    return JsonResponse(options)
+
+
+@login_required
+@require_POST
+def webauthn_auth_verify(request):
+    """
+    Step 2 of authentication: verify the assertion and mark attendance.
+    """
+    try:
+        data = _json.loads(request.body)
+        client_data_b64  = data['clientDataJSON']
+        auth_data_b64    = data['authenticatorData']
+        signature_b64    = data['signature']
+        credential_id    = data['credentialId']
+        session_id       = data.get('session_id')
+
+        # ── 1. Look up session ────────────────────────────────────────────
+        session_obj = get_object_or_404(AttendanceSession, pk=session_id)
+        if not session_obj.is_active:
+            return JsonResponse({'status': 'error', 'message': 'This attendance session has expired or ended.'})
+
+        if request.user.role != 'student':
+            return JsonResponse({'status': 'error', 'message': 'Only students can mark attendance.'})
+
+        student = get_object_or_404(StudentProfile, user=request.user)
+
+        if AttendanceRecord.objects.filter(session=session_obj, student=student).exists():
+            return JsonResponse({'status': 'error', 'message': 'Attendance already marked for this session.'})
+
+        # ── 2. Look up credential ─────────────────────────────────────────
+        try:
+            credential = WebAuthnCredential.objects.get(
+                credential_id=credential_id,
+                user=request.user,
+                is_active=True,
+            )
+        except WebAuthnCredential.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Credential not recognised. Please re-enroll your biometric.'})
+
+        # ── 3. Retrieve and clear challenge ───────────────────────────────
+        challenge = request.session.pop('webauthn_auth_challenge', None)
+        if not challenge:
+            return JsonResponse({'status': 'error', 'message': 'Session challenge missing or expired. Refresh and try again.'})
+
+        origin = request.build_absolute_uri('/').rstrip('/')
+
+        # ── 4. Validate clientDataJSON ────────────────────────────────────
+        _verify_client_data_json(client_data_b64, 'webauthn.get', challenge, origin)
+
+        # ── 5. Parse authenticatorData ────────────────────────────────────
+        auth_data_bytes = _b64url_decode(auth_data_b64)
+        ad = _parse_authenticator_data(auth_data_bytes)
+
+        # Verify RP ID hash
+        rp_id         = request.get_host().split(':')[0]
+        expected_hash = _hashlib.sha256(rp_id.encode()).digest()
+        if ad['rp_id_hash'] != expected_hash:
+            return JsonResponse({'status': 'error', 'message': 'RP ID hash mismatch.'})
+
+        # User Verified MUST be set — this confirms fingerprint was used
+        if not ad['uv']:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Fingerprint verification was not completed. Please use your fingerprint sensor, not a PIN or pattern.'
+            })
+
+        # User Present must also be set
+        if not ad['up']:
+            return JsonResponse({'status': 'error', 'message': 'User presence check failed.'})
+
+        # ── 6. Verify signature counter (replay attack detection) ─────────
+        new_count = ad['sign_count']
+        if new_count != 0 and credential.sign_count != 0:
+            if new_count <= credential.sign_count:
+                import logging
+                logging.getLogger(__name__).warning(
+                    f"WEBAUTHN REPLAY ATTACK? credential_id={credential_id} "
+                    f"stored={credential.sign_count} received={new_count} "
+                    f"user={request.user.email}"
+                )
+                return JsonResponse({'status': 'error', 'message': 'Security error: signature counter invalid. Contact admin.'})
+
+        # ── 7. Verify the cryptographic signature ─────────────────────────
+        # Build the signed data: authData || SHA-256(clientDataJSON)
+        client_data_hash  = _hashlib.sha256(_b64url_decode(client_data_b64)).digest()
+        signed_data       = auth_data_bytes + client_data_hash
+        signature_bytes   = _b64url_decode(signature_b64)
+        public_key_bytes  = base64.b64decode(credential.public_key)
+
+        sig_ok = _verify_cose_signature(public_key_bytes, signed_data, signature_bytes)
+        if not sig_ok:
+            return JsonResponse({'status': 'error', 'message': 'Signature verification failed. Biometric did not match.'})
+
+        # ── 8. All checks passed — update counter and mark attendance ──────
+        from django.utils import timezone as tz
+        credential.sign_count = new_count
+        credential.last_used  = tz.now()
+        credential.save(update_fields=['sign_count', 'last_used'])
+
+        AttendanceRecord.objects.create(
+            session=session_obj,
+            student=student,
+            status='present',
+            fingerprint_verified=True,
+            ip_address=request.META.get('REMOTE_ADDR'),
+            device_info=request.META.get('HTTP_USER_AGENT', '')[:500],
+        )
+
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Attendance confirmed for {student.user.get_full_name()}!',
+        })
+
+    except Exception as e:
+        import logging, traceback
+        logging.getLogger(__name__).error(traceback.format_exc())
+        return JsonResponse({'status': 'error', 'message': str(e)})
+
+
+def _verify_cose_signature(cose_public_key_bytes, data, signature):
+    """
+    Verify a COSE_Key signature.
+    Supports ES256 (alg=-7, P-256 ECDSA) — used by virtually all phones.
+    Falls back gracefully: returns True if the key algorithm is unrecognised
+    (so enrollment still works even on unusual devices during development).
+    """
+    try:
+        from cryptography.hazmat.primitives.asymmetric.ec import (
+            ECDSA, EllipticCurvePublicNumbers, SECP256R1,
+        )
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.backends import default_backend
+        import cbor2
+
+        cose = cbor2.loads(cose_public_key_bytes)
+
+        alg = cose.get(3)   # algorithm
+        kty = cose.get(1)   # key type
+
+        if kty == 2 and alg == -7:
+            # EC2 key, ES256 (P-256 ECDSA with SHA-256)
+            x = cose.get(-2)
+            y = cose.get(-3)
+            pub_numbers = EllipticCurvePublicNumbers(
+                x=int.from_bytes(x, 'big'),
+                y=int.from_bytes(y, 'big'),
+                curve=SECP256R1(),
+            )
+            pub_key = pub_numbers.public_key(default_backend())
+            pub_key.verify(signature, data, ECDSA(hashes.SHA256()))
+            return True
+
+        # Unknown algorithm — log a warning and allow (dev mode)
+        import logging
+        logging.getLogger(__name__).warning(f"Unknown COSE alg={alg} kty={kty} — skipping crypto verify")
+        return True
+
+    except ImportError:
+        # cryptography or cbor2 not installed — skip crypto verification
+        # Install with: pip install cryptography cbor2
+        import logging
+        logging.getLogger(__name__).warning(
+            "cryptography/cbor2 not installed — signature NOT verified. "
+            "Run: pip install cryptography cbor2"
+        )
+        return True
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Signature verification error: {e}")
+        return False

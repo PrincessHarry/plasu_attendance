@@ -216,3 +216,27 @@ class AttendanceRecord(models.Model):
 
     def __str__(self):
         return f"{self.student.user.get_full_name()} - {self.session.course.code} - {self.status}"
+
+
+class WebAuthnCredential(models.Model):
+    """
+    Stores a real WebAuthn (FIDO2) credential registered by a student.
+    One student can have multiple credentials (e.g. phone + laptop).
+    """
+    id             = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user           = models.ForeignKey(User, on_delete=models.CASCADE, related_name='webauthn_credentials')
+    credential_id  = models.TextField(unique=True)        # base64url bytes from authenticator
+    public_key     = models.TextField()                   # base64-encoded CBOR public key
+    sign_count     = models.BigIntegerField(default=0)    # replay-attack prevention
+    device_name    = models.CharField(max_length=200, blank=True)
+    enrolled_at    = models.DateTimeField(auto_now_add=True)
+    last_used      = models.DateTimeField(null=True, blank=True)
+    is_active      = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = 'WebAuthn Credential'
+        verbose_name_plural = 'WebAuthn Credentials'
+        ordering = ['-enrolled_at']
+
+    def __str__(self):
+        return f"WebAuthn: {self.user.get_full_name()} — {self.device_name or self.credential_id[:16]}"
