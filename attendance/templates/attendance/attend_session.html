@@ -140,20 +140,51 @@ function startVerification() {
 }
 
 function verifyWithServer() {
-  // TODO: Replace with actual fingerprint scanner integration
-  // This should capture real biometric data from the fingerprint sensor
-  // For now, using placeholder - integrate with fingerprint scanner API
-  const fingerprintData = prompt('Enter fingerprint data (for testing - replace with scanner):');
-  
-  if (!fingerprintData || fingerprintData.trim() === '') {
-    PLASU.FingerprintUI.setState('error', 'Fingerprint data is required.');
+  // Use device native biometric authentication (WebAuthn)
+  if (!window.PublicKeyCredential) {
+    PLASU.FingerprintUI.setState('error', 'Your device does not support fingerprint authentication.');
     const btn = document.getElementById('verify-btn');
     btn.disabled = false;
     btn.textContent = 'Retry';
     btn.onclick = startVerification;
     return;
   }
-  
+
+  // Trigger device fingerprint authentication
+  authenticateWithBiometric()
+    .then(function(publicKeyCredential) {
+      // Biometric authentication successful - send to server for verification
+      sendFingerprintToServer(publicKeyCredential);
+    })
+    .catch(function(error) {
+      handleBiometricError(error);
+    });
+}
+
+function authenticateWithBiometric() {
+  return navigator.credentials.get({
+    publicKey: {
+      challenge: new Uint8Array(32), // Random challenge from server in production
+      timeout: 60000,
+      userVerification: 'preferred',
+      rpId: window.location.hostname,
+    },
+    mediation: 'optional'
+  }).then(function(credential) {
+    if (!credential) {
+      throw new Error('Fingerprint authentication cancelled.');
+    }
+    return credential;
+  });
+}
+
+function sendFingerprintToServer(credential) {
+  const fingerprintData = btoa(JSON.stringify({
+    id: credential.id,
+    type: credential.type,
+    rawId: Array.from(new Uint8Array(credential.rawId)),
+  }));
+
   fetch("{% url 'attendance:api_verify_fingerprint' %}", {
     method: 'POST',
     headers: {
@@ -176,8 +207,15 @@ function verifyWithServer() {
       setTimeout(function() {
         window.location.href = "{% url 'attendance:student_dashboard' %}";
       }, 2500);
+    } else if (data.duplicate_detected) {
+      PLASU.FingerprintUI.setState('error', data.message || 'Fingerprint does not match, use your device or try again.');
+      btn.disabled = false;
+      btn.style.background = '#fee2e2';
+      btn.style.color = '#b91c1c';
+      btn.innerHTML = 'Try Again';
+      btn.onclick = startVerification;
     } else {
-      PLASU.FingerprintUI.setState('error', data.message);
+      PLASU.FingerprintUI.setState('error', 'Fingerprint does not match, use your device or try again.');
       btn.disabled = false;
       btn.style.background = '#fee2e2';
       btn.style.color = '#b91c1c';
@@ -185,13 +223,35 @@ function verifyWithServer() {
       btn.onclick = startVerification;
     }
   })
-  .catch(function() {
+  .catch(function(err) {
     PLASU.FingerprintUI.setState('error', 'Network error. Check your connection.');
     const btn = document.getElementById('verify-btn');
     btn.disabled = false;
-    btn.textContent = 'Retry';
+    btn.textContent = 'Try Again';
     btn.onclick = startVerification;
   });
+}
+
+function handleBiometricError(error) {
+  const btn = document.getElementById('verify-btn');
+  let errorMessage = 'Fingerprint authentication failed.';
+  
+  if (error.name === 'NotAllowedError') {
+    errorMessage = 'Fingerprint authentication was cancelled. Try again.';
+  } else if (error.name === 'InvalidStateError') {
+    errorMessage = 'Fingerprint does not match, use your device or try again.';
+  } else if (error.name === 'NotSupportedError') {
+    errorMessage = 'Your device does not support fingerprint authentication.';
+  } else if (error.message) {
+    errorMessage = error.message;
+  }
+  
+  PLASU.FingerprintUI.setState('error', errorMessage);
+  btn.disabled = false;
+  btn.style.background = '#fee2e2';
+  btn.style.color = '#b91c1c';
+  btn.innerHTML = 'Try Again';
+  btn.onclick = startVerification;
 }
 </script>
 {% endblock %}
