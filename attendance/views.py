@@ -320,7 +320,7 @@ def add_lecturer(request):
                     user=user,
                     defaults={
                         'template_reference': f"LECT-FP-{staff_id}",
-                        'template_hash': hashlib.sha256(f"{user.id}lecturer".encode()).hexdigest(),
+                        'template_hash': '',  # Will be set during first enrollment
                     }
                 )
                 messages.success(request, f'Lecturer "{first_name} {last_name}" created.')
@@ -407,7 +407,7 @@ def add_student(request):
                     user=user,
                     defaults={
                         'template_reference': f"STU-FP-{matric.replace('/', '-')}",
-                        'template_hash': hashlib.sha256(f"{user.id}student".encode()).hexdigest(),
+                        'template_hash': '',  # Will be set during first enrollment
                     }
                 )
                 messages.success(request, f'Student "{first_name} {last_name}" registered.')

@@ -140,8 +140,19 @@ function startVerification() {
 }
 
 function verifyWithServer() {
-  // Simulate fingerprint data (in production, this would be actual biometric data)
-  const fingerprintData = 'FP_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+  // TODO: Replace with actual fingerprint scanner integration
+  // This should capture real biometric data from the fingerprint sensor
+  // For now, using placeholder - integrate with fingerprint scanner API
+  const fingerprintData = prompt('Enter fingerprint data (for testing - replace with scanner):');
+  
+  if (!fingerprintData || fingerprintData.trim() === '') {
+    PLASU.FingerprintUI.setState('error', 'Fingerprint data is required.');
+    const btn = document.getElementById('verify-btn');
+    btn.disabled = false;
+    btn.textContent = 'Retry';
+    btn.onclick = startVerification;
+    return;
+  }
   
   fetch("{% url 'attendance:api_verify_fingerprint' %}", {
     method: 'POST',

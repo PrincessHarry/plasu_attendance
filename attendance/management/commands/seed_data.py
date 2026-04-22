@@ -86,7 +86,7 @@ class Command(BaseCommand):
                 user=user,
                 defaults={
                     'template_reference': f"LECT-FP-{staff_id}",
-                    'template_hash': hashlib.sha256(f"{user.id}lecturer".encode()).hexdigest(),
+                    'template_hash': '',  # Will be set during first enrollment
                 }
             )
             lecturers[staff_id] = profile
@@ -169,7 +169,7 @@ class Command(BaseCommand):
                     user=user,
                     defaults={
                         'template_reference': f"STU-FP-{matric.replace('/', '-')}",
-                        'template_hash': hashlib.sha256(f"{user.id}student".encode()).hexdigest(),
+                        'template_hash': '',  # Will be set during first enrollment
                     }
                 )
                 self.stdout.write(f'  Student: {first} {last} ({matric})  ->  {email} / {password}')
