@@ -719,13 +719,40 @@ def verify_fingerprint(request, session_id):
     session = get_object_or_404(AttendanceSession, pk=session_id)
     student = get_object_or_404(StudentProfile, user=request.user)
     if request.method == 'POST':
-        # Simulate fingerprint verification
+        # Get fingerprint data from request
         fp_input = request.POST.get('fingerprint_data', '')
         fingerprint = FingerprintTemplate.objects.filter(user=request.user, is_active=True).first()
         if fingerprint:
+            # Check for duplicate fingerprints across all users
+            duplicate_fingerprint = FingerprintTemplate.objects.filter(
+                template_hash=fp_input,
+                is_active=True
+            ).exclude(user=request.user).first()
+
+            if duplicate_fingerprint:
+                # Flag the duplicate immediately
+                duplicate_student = StudentProfile.objects.filter(user=duplicate_fingerprint.user).first()
+                duplicate_name = duplicate_student.user.get_full_name() if duplicate_student else "another student"
+                duplicate_matric = duplicate_student.matric_number if duplicate_student else "unknown"
+
+                # Log the security incident
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"FINGERPRINT DUPLICATE DETECTED: User {request.user.get_full_name()} ({student.matric_number}) attempted to use fingerprint already enrolled for {duplicate_name} ({duplicate_matric})")
+
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Security Alert: This fingerprint is already registered to {duplicate_name}. Contact administrator immediately.',
+                    'duplicate_detected': True
+                })
+
             # Simulated verification: hash the input and compare
             verified = True  # In production: compare actual template
             if verified:
+                # Update fingerprint template with new hash
+                fingerprint.template_hash = fp_input
+                fingerprint.save()
+
                 if not AttendanceRecord.objects.filter(session=session, student=student).exists():
                     AttendanceRecord.objects.create(
                         session=session, student=student, status='present',
@@ -779,6 +806,7 @@ def api_verify_fingerprint(request):
     try:
         data = json.loads(request.body)
         session_id = data.get('session_id')
+        fingerprint_data = data.get('fingerprint_data')
         session = get_object_or_404(AttendanceSession, pk=session_id)
 
         if not session.is_active:
@@ -796,7 +824,41 @@ def api_verify_fingerprint(request):
         if not fingerprint:
             return JsonResponse({'status': 'error', 'message': 'No fingerprint enrolled for this account.'})
 
-        # Simulated fingerprint verification
+        # Check if this fingerprint data is already enrolled for another student
+        duplicate_fingerprint = FingerprintTemplate.objects.filter(
+            template_hash=fingerprint_data,
+            is_active=True
+        ).exclude(user=request.user).first()
+
+        if duplicate_fingerprint:
+            # Flag the duplicate immediately - this is a security violation
+            duplicate_student = StudentProfile.objects.filter(user=duplicate_fingerprint.user).first()
+            duplicate_name = duplicate_student.user.get_full_name() if duplicate_student else "another student"
+            duplicate_matric = duplicate_student.matric_number if duplicate_student else "unknown"
+
+            # Log the security incident
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"FINGERPRINT DUPLICATE DETECTED: User {request.user.get_full_name()} ({student.matric_number}) attempted to use fingerprint already enrolled for {duplicate_name} ({duplicate_matric})")
+
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Security Alert: This fingerprint is already registered to {duplicate_name}. Contact administrator immediately.',
+                'duplicate_detected': True
+            })
+
+        # Check if fingerprint matches the enrolled template (simulated comparison)
+        # In production, this would compare actual biometric data
+        fingerprint_match = True  # Simulated match
+
+        if not fingerprint_match:
+            return JsonResponse({'status': 'error', 'message': 'Fingerprint verification failed. Please try again.'})
+
+        # Update the fingerprint template with the new hash for future verification
+        fingerprint.template_hash = fingerprint_data
+        fingerprint.save()
+
+        # Mark attendance
         AttendanceRecord.objects.create(
             session=session, student=student, status='present',
             fingerprint_verified=True,

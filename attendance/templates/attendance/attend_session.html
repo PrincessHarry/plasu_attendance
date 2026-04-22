@@ -140,13 +140,19 @@ function startVerification() {
 }
 
 function verifyWithServer() {
+  // Simulate fingerprint data (in production, this would be actual biometric data)
+  const fingerprintData = 'FP_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+  
   fetch("{% url 'attendance:api_verify_fingerprint' %}", {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-CSRFToken': PLASU.getCookie('csrftoken'),
     },
-    body: JSON.stringify({ session_id: SESSION_ID }),
+    body: JSON.stringify({ 
+      session_id: SESSION_ID,
+      fingerprint_data: fingerprintData
+    }),
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
